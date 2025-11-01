@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\PTZControl.Uvc\PTZControl.Uvc.csproj" />
+    <Reference Include="PTZControlBridge">
+      <HintPath>..\PTZControlBridge\Debug\PTZControlBridge.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>
