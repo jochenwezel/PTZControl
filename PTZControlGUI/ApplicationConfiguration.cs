@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Windows.Forms;
 
 namespace PTZControlGUI
 {
-    internal static class ApplicationConfiguration
+    internal static class ApplicationConfiguration_OBSOLETE
     {
         public static void Initialize()
         {
