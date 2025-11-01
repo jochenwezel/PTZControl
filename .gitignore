@@ -13,3 +13,6 @@ PTZControl/PTZControl.aps
 /PTZControl/PTZControl/Release
 /PTZControl/PTZControl/x64
 /PTZControl/PTZControl/Debug
+.vs
+obj
+bin
