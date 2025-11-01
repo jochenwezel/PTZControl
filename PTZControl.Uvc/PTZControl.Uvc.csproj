@@ -6,6 +6,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="DirectShowLib" Version="2.1.0" />
+    <PackageReference Include="DirectShowLib.Standard" Version="2.1.0" />
   </ItemGroup>
 </Project>
