@@ -1,13 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="PTZControlBridge">
-      <HintPath>..\PTZControlBridge\Debug\PTZControlBridge.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\PTZControl.Uvc\PTZControl.Uvc.csproj" />
+    <ProjectReference Include="..\PTZControlBridge\PTZControlBridge.vcxproj" />
   </ItemGroup>
 </Project>
