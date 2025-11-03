@@ -1,7 +1,7 @@
-#include "Bridge.h"
+﻿#include "Bridge.h"
 #include "LogitechXuGuids.h"
 
-#using "..\\PTZControl.Uvc\\bin\\Debug\\net8.0-windows10.0.19041.0\\PTZControl.Uvc.dll"
+#using "..\\PTZControl.Uvc\\bin\\Debug\\net8.0-windows\\PTZControl.Uvc.dll"
 
 using namespace PTZControlBridge;
 
