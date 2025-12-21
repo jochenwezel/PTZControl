@@ -236,6 +236,9 @@ CPTZControlDlg::CPTZControlDlg(CWnd* pParent /*=nullptr*/)
 	, m_iNumWebCams(0)
 	, m_evTerminating(FALSE,TRUE)
 	, m_pGuardThread(nullptr)
+	, m_iHotKeyCurrentCam{ 0 }
+	, m_iHotKeyNextCam{ 0 }
+	, m_iHotKeyPosition{ 0 }
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_hAccel = ::LoadAccelerators(AfxFindResourceHandle(IDR_ACCELERATOR, RT_ACCELERATOR), MAKEINTRESOURCE(IDR_ACCELERATOR));
@@ -339,6 +342,7 @@ BEGIN_MESSAGE_MAP(CPTZControlDlg, CDialogEx)
 	ON_BN_UNPUSHED(IDC_BT_LEFT, &CPTZControlDlg::OnBtUnpushed)
 	ON_BN_UNPUSHED(IDC_BT_RIGHT, &CPTZControlDlg::OnBtUnpushed)
 	ON_WM_TIMER()
+	ON_WM_HOTKEY()
 END_MESSAGE_MAP()
 
 
@@ -590,6 +594,26 @@ BOOL CPTZControlDlg::OnInitDialog()
 		AfxMessageBox(IDP_ERR_NO_CAMERA, MB_ICONERROR);
 	}
 
+	//-------------Register hotkeys-----------------------------------------
+
+	for (int iWebCam = 0; iWebCam<(m_iNumWebCams==0 ? 1 : m_iNumWebCams); ++iWebCam)
+	{
+		for (int iPreset = 0; iPreset<CWebcamController::NUM_PRESETS; ++iPreset)
+		{
+			if (::RegisterHotKey(
+					GetSafeHwnd(),
+					10*(iWebCam+1)+iPreset,
+					(iWebCam==0 ? (MOD_WIN) : 			 
+					 iWebCam==1 ? (MOD_WIN|MOD_CONTROL) :
+					 iWebCam==2 ? (MOD_WIN|MOD_ALT) : 0),
+					 VK_NUMPAD0+iPreset)==0)
+			{
+				auto dwError = ::GetLastError();
+				TRACE(_T(__FUNCTION__) _T(" RegisterHotKey failed with %d"),dwError);
+			}
+		}
+	}
+
 	//---------------------------------------------------------------------
 	// ADJUST THE DIALOG
 
@@ -649,7 +673,7 @@ BOOL CPTZControlDlg::OnInitDialog()
 	EnableToolTips(TRUE);
 
 	// Start a guard thread that takes care about a blocking app.
-	if (!theApp.m_bNoGuard)
+	if (!theApp.m_bNoGuard)	
 		m_pGuardThread = AfxBeginThread(&GuardThread,this);
 
 	// Set a time to move the focus to the parent window
@@ -729,6 +753,19 @@ void CPTZControlDlg::OnClose()
 	theApp.WriteProfileInt(REG_WINDOW,REG_WINDOW_POSX,rect.left);
 	theApp.WriteProfileInt(REG_WINDOW,REG_WINDOW_POSY,rect.top);
 
+//-------------Register hotkeys-----------------------------------------
+
+	for (int iWebCam = 0; iWebCam<(m_iNumWebCams==0 ? 1 : m_iNumWebCams); ++iWebCam)
+	{
+		for (int iPreset = 0; iPreset<CWebcamController::NUM_PRESETS; ++iPreset)
+		{
+			::UnregisterHotKey(
+				GetSafeHwnd(),
+				10*(iWebCam+1)+iPreset
+			);
+		}
+	}
+
 	DestroyWindow();
 }
 
@@ -800,6 +837,14 @@ BOOL CPTZControlDlg::OnBtPreset(UINT nId)
 		STATIC_DOWNCAST(CPTZButton,GetDlgItem(nId))->SetFaceColor(COLOR_GREEN,TRUE);
 	}
 	return TRUE;
+}
+
+void CPTZControlDlg::OnHotKey(UINT nId, UINT nMod, UINT nKey)
+{
+	m_iHotKeyCurrentCam = m_iCurrentWebCam;
+	m_iHotKeyNextCam = nId/10-1; // Base 10 = webcam 1
+	m_iHotKeyPosition = nId%10;  // Position 0 = home, 1=mem pos1, etc.	
+	SetTimer(TIMER_HOTKEY_SWITCH_TO, TIMER_HOTKEY_DELAY_1,nullptr);
 }
 
 BOOL CPTZControlDlg::OnBtWebCam(UINT nId)
@@ -880,7 +925,34 @@ void CPTZControlDlg::OnSetFocus(CWnd* pOldWnd)
 
 void CPTZControlDlg::OnTimer(UINT_PTR nIDEvent)
 {
-	if (nIDEvent == TIMER_FOCUS_CHECK)
+	// Timer seuqnce 
+	// - TIMER_HOTKEY_SWITCH_TO
+	// - TIMER_HOTKEY_POSITION
+	// - TIMER_HOTKEY_SWITCH_BACK
+	if (nIDEvent==TIMER_HOTKEY_SWITCH_TO)
+	{
+		KillTimer(TIMER_HOTKEY_SWITCH_TO);
+		SetActiveCam(m_iHotKeyNextCam);
+		SetTimer(TIMER_HOTKEY_POSITION,TIMER_HOTKEY_DELAY_2,nullptr);
+	}
+	else if (nIDEvent==TIMER_HOTKEY_POSITION)
+	{
+		KillTimer(TIMER_HOTKEY_POSITION);
+		if (m_iHotKeyPosition>=0 && m_iHotKeyPosition<CWebcamController::NUM_PRESETS+1)
+		{
+			if (m_iHotKeyPosition==0)
+				CPTZControlDlg::OnBtHome();
+			else
+				CPTZControlDlg::OnBtPreset(m_btPreset[m_iHotKeyPosition-1].GetDlgCtrlID());
+		}
+		SetTimer(TIMER_HOTKEY_SWITCH_BACK,TIMER_HOTKEY_DELAY_3,nullptr);
+	}
+	else if (nIDEvent==TIMER_HOTKEY_SWITCH_BACK)
+	{
+		KillTimer(TIMER_HOTKEY_SWITCH_BACK);
+		SetActiveCam(m_iHotKeyCurrentCam);
+	}
+	else if (nIDEvent == TIMER_FOCUS_CHECK)
 	{
 		CWnd* pWndFocus = GetFocus();
 		if (pWndFocus && 
