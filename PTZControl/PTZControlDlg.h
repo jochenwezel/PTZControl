@@ -6,6 +6,14 @@
 #include "resource.h"
 #include "ExtensionUnit.h"
 
+/////////////////////////////////////////////////////////////////////////////
+// Hotkey definitions for 0 (Home), and memory positions 1-8
+//  We use it for 3 WebCams
+//  We use offset 10, for each camera, and modifier positions 0-8
+//  0 = home, 1-8 = memory slots 1-8
+//  23 = Camera 2 memory position 3, 10 = Camera 1, Home position
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // CPTZButton
 
@@ -113,6 +121,11 @@ protected:
 	CWinThread* m_pGuardThread;
 	static UINT AFX_CDECL GuardThread(LPVOID hWnd); // AFX_THREADPROC
 
+// Hotkey perset, used by timer to switch to a camera and memory position
+	int m_iHotKeyCurrentCam;
+	int m_iHotKeyNextCam;
+	int m_iHotKeyPosition;
+
 // Implementation
 protected:
 	HICON m_hIcon;
@@ -133,7 +146,7 @@ protected:
 	afx_msg LRESULT OnNcHitTest(CPoint point);
 	afx_msg void OnBtMemory();
 	afx_msg BOOL OnBtPreset(UINT nId);
-
+	afx_msg void OnHotKey(UINT nId, UINT nMod, UINT nKey);
 	void ResetMemButton();
 
 	afx_msg BOOL OnBtWebCam(UINT nId);

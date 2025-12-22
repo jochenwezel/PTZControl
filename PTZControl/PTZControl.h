@@ -30,6 +30,13 @@
 #define TIMER_FOCUS_CHECK			4711
 #define TIMER_AUTO_REPEAT			4712
 #define TIMER_CLEAR_MEMORY			4713
+#define TIMER_HOTKEY_SWITCH_TO		4714	// Used for Hotkeys sequence
+#define TIMER_HOTKEY_POSITION		4715
+#define TIMER_HOTKEY_SWITCH_BACK	4716
+
+#define TIMER_HOTKEY_DELAY_1		10		// Switch to camera
+#define TIMER_HOTKEY_DELAY_2		10		// Set position
+#define TIMER_HOTKEY_DELAY_3		750		// Switch back
 
 #define FOCUS_CHECK_DELAY			250		// After 250msec we move the focus away from a button.
 #define AUTO_REPEAT_DELAY			50		// Autorepeat is on the fastest possible delay of 50msec
