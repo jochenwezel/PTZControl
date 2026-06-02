@@ -6,69 +6,83 @@ class Program
 {
     static int Main(string[] args)
     {
+        try
+        {
+            return Run(args);
+        }
+        catch (NotSupportedException ex)
+        {
+            return Fail(ex, 3);
+        }
+        catch (Exception ex)
+        {
+            return Fail(ex, 2);
+        }
+    }
+
+    static int Run(string[] args)
+    {
         if (args.Length == 0)
         {
             PrintUsage();
             return 1;
         }
 
-        try
-        {
-            var command = args[0].ToLowerInvariant();
+        var command = args[0].ToLowerInvariant();
 
-            switch (command)
+        switch (command)
+        {
+            case "list-devices":
+                EnsureNoOptions(ParseOptions(args[1..]), "list-devices");
+                return ListDevices();
+            case "restore-preset":
             {
-                case "list-devices":
-                    EnsureNoOptions(ParseOptions(args[1..]), "list-devices");
-                    return ListDevices();
-                case "restore-preset":
-                {
-                    var options = ParseOptions(args[2..]);
-                    UvcCamera.RestorePreset(ResolveCamera(options), ParsePreset(args, 1));
-                    return Ok();
-                }
-                case "save-preset":
-                {
-                    var options = ParseOptions(args[2..]);
-                    WarnUnsupportedPresetName(options);
-                    UvcCamera.SavePreset(ResolveCamera(options), ParsePreset(args, 1));
-                    return Ok();
-                }
-                case "zoom-absolute":
-                {
-                    var options = ParseOptions(args[2..]);
-                    return SetAbsoluteZoom(ResolveCamera(options), ParsePercent(args, 1));
-                }
-                case "zoom-relative":
-                {
-                    var options = ParseOptions(args[2..]);
-                    return SetRelativeZoom(ResolveCamera(options), ParsePercent(args, 1));
-                }
-                case "move-absolute":
-                {
-                    var options = ParseOptions(args[1..]);
-                    return MoveAbsolute(ResolveCamera(options), options);
-                }
-                case "move-relative":
-                {
-                    var options = ParseOptions(args[1..]);
-                    return MoveRelative(ResolveCamera(options), options);
-                }
-                default:
-                    throw new ArgumentException($"Unknown command '{args[0]}'.");
+                var options = ParseOptions(args[2..]);
+                UvcCamera.RestorePreset(ResolveCamera(options), ParsePreset(args, 1));
+                return Ok();
             }
-        }
-        catch (NotSupportedException nse)
-        {
-            Console.Error.WriteLine(nse.Message);
-            return 3;
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine(ex.Message);
-            return 2;
+            case "save-preset":
+            {
+                var options = ParseOptions(args[2..]);
+                WarnUnsupportedPresetName(options);
+                UvcCamera.SavePreset(ResolveCamera(options), ParsePreset(args, 1));
+                return Ok();
+            }
+            case "zoom-absolute":
+            {
+                var options = ParseOptions(args[2..]);
+                return SetAbsoluteZoom(ResolveCamera(options), ParsePercent(args, 1));
+            }
+            case "zoom-relative":
+            {
+                var options = ParseOptions(args[2..]);
+                return SetRelativeZoom(ResolveCamera(options), ParsePercent(args, 1));
+            }
+            case "move-absolute":
+            {
+                var options = ParseOptions(args[1..]);
+                return MoveAbsolute(ResolveCamera(options), options);
+            }
+            case "move-relative":
+            {
+                var options = ParseOptions(args[1..]);
+                return MoveRelative(ResolveCamera(options), options);
+            }
+            default:
+                throw new ArgumentException($"Unknown command '{args[0]}'.");
         }
     }
+
+    static int Fail(Exception ex, int exitCode)
+    {
+        Console.Error.WriteLine($"Error: {GetErrorMessage(ex)}");
+        if (ex.InnerException is not null)
+            Console.Error.WriteLine($"Cause: {GetErrorMessage(ex.InnerException)}");
+        return exitCode;
+    }
+
+    static string GetErrorMessage(Exception ex) =>
+        string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
     static void PrintUsage()
     {
