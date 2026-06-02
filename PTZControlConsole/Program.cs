@@ -15,32 +15,49 @@ class Program
         try
         {
             var command = args[0].ToLowerInvariant();
-            var options = ParseOptions(args[1..]);
 
             switch (command)
             {
                 case "list-devices":
-                case "--list":
+                    EnsureNoOptions(ParseOptions(args[1..]), "list-devices");
                     return ListDevices();
                 case "restore-preset":
+                {
+                    var options = ParseOptions(args[2..]);
                     _ = ResolveCamera(options);
                     _ = ParsePreset(args, 1);
                     throw new NotSupportedException("Logitech preset recall is not implemented yet.");
+                }
                 case "save-preset":
+                {
+                    var options = ParseOptions(args[2..]);
                     _ = ResolveCamera(options);
                     _ = ParsePreset(args, 1);
                     WarnUnsupportedPresetName(options);
                     throw new NotSupportedException("Logitech preset save is not implemented yet.");
+                }
                 case "zoom-absolute":
+                {
+                    var options = ParseOptions(args[2..]);
                     return SetAbsoluteZoom(ResolveCamera(options), ParsePercent(args, 1));
+                }
                 case "zoom-relative":
+                {
+                    var options = ParseOptions(args[2..]);
                     return SetRelativeZoom(ResolveCamera(options), ParsePercent(args, 1));
+                }
                 case "move-absolute":
+                {
+                    var options = ParseOptions(args[1..]);
                     return MoveAbsolute(ResolveCamera(options), options);
+                }
                 case "move-relative":
+                {
+                    var options = ParseOptions(args[1..]);
                     return MoveRelative(ResolveCamera(options), options);
+                }
                 default:
-                    return LegacyCommand(args);
+                    throw new ArgumentException($"Unknown command '{args[0]}'.");
             }
         }
         catch (NotSupportedException nse)
@@ -65,11 +82,6 @@ class Program
         Console.WriteLine("  PTZControlConsole zoom-relative PERCENT_DELTA [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole move-absolute [--x PERCENT] [--y PERCENT] [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole move-relative [--x PERCENT_DELTA] [--y PERCENT_DELTA] [--camera \"NamePart\"]");
-        Console.WriteLine();
-        Console.WriteLine("Legacy:");
-        Console.WriteLine("  PTZControlConsole --list");
-        Console.WriteLine("  PTZControlConsole --camera \"NamePart\" [--pan N] [--tilt N] [--zoom N]");
-        Console.WriteLine("  PTZControlConsole --preset --camera \"NamePart\" --save N|--recall N");
     }
 
     static int ListDevices()
@@ -77,6 +89,12 @@ class Program
         foreach (var cam in UvcCamera.Enumerate())
             Console.WriteLine(string.IsNullOrWhiteSpace(cam.MonikerString) ? cam.Name : $"{cam.Name}\t{cam.MonikerString}");
         return 0;
+    }
+
+    static void EnsureNoOptions(Options options, string command)
+    {
+        if (options.HasAnyValue)
+            throw new ArgumentException($"{command} does not accept options.");
     }
 
     static int SetAbsoluteZoom(string camera, int percent)
@@ -108,30 +126,6 @@ class Program
         var tilt = options.Y is null ? (int?)null : AddPercentDelta(camera, UvcCameraProperty.Tilt, options.Y.Value);
         if (pan is null && tilt is null) throw new ArgumentException("move-relative requires --x and/or --y.");
         UvcCamera.SetPanTiltZoom(camera, pan, tilt);
-        return Ok();
-    }
-
-    static int LegacyCommand(string[] args)
-    {
-        if (Array.Exists(args, a => a.Equals("--list", StringComparison.OrdinalIgnoreCase)))
-            return ListDevices();
-
-        var options = ParseOptions(args);
-        var camera = ResolveCamera(options);
-
-        if (options.Preset)
-        {
-            if (options.Save.HasValue) throw new NotSupportedException("Logitech preset save is not implemented yet.");
-            else if (options.Recall.HasValue) throw new NotSupportedException("Logitech preset recall is not implemented yet.");
-            else throw new ArgumentException("--preset requires --save N or --recall N.");
-        }
-        else
-        {
-            if (options.Pan is null && options.Tilt is null && options.Zoom is null)
-                throw new ArgumentException("Unknown command or missing PTZ arguments.");
-            UvcCamera.SetPanTiltZoom(camera, options.Pan, options.Tilt, options.Zoom);
-        }
-
         return Ok();
     }
 
@@ -195,39 +189,19 @@ class Program
             switch (args[i].ToLowerInvariant())
             {
                 case "--camera":
-                case "-camera":
                     options.Camera = ReadValue(args, ref i);
                     break;
                 case "--name":
-                case "-name":
                     options.Name = ReadValue(args, ref i);
                     break;
                 case "--x":
-                case "-x":
                     options.X = int.Parse(ReadValue(args, ref i));
                     break;
                 case "--y":
-                case "-y":
                     options.Y = int.Parse(ReadValue(args, ref i));
                     break;
-                case "--pan":
-                    options.Pan = int.Parse(ReadValue(args, ref i));
-                    break;
-                case "--tilt":
-                    options.Tilt = int.Parse(ReadValue(args, ref i));
-                    break;
-                case "--zoom":
-                    options.Zoom = int.Parse(ReadValue(args, ref i));
-                    break;
-                case "--preset":
-                    options.Preset = true;
-                    break;
-                case "--save":
-                    options.Save = int.Parse(ReadValue(args, ref i));
-                    break;
-                case "--recall":
-                    options.Recall = int.Parse(ReadValue(args, ref i));
-                    break;
+                default:
+                    throw new ArgumentException($"Unknown option '{args[i]}'.");
             }
         }
         return options;
@@ -247,11 +221,10 @@ class Program
         public string? Name { get; set; }
         public int? X { get; set; }
         public int? Y { get; set; }
-        public int? Pan { get; set; }
-        public int? Tilt { get; set; }
-        public int? Zoom { get; set; }
-        public bool Preset { get; set; }
-        public int? Save { get; set; }
-        public int? Recall { get; set; }
+        public bool HasAnyValue =>
+            !string.IsNullOrWhiteSpace(Camera) ||
+            !string.IsNullOrWhiteSpace(Name) ||
+            X.HasValue ||
+            Y.HasValue;
     }
 }
