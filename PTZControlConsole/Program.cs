@@ -24,17 +24,15 @@ class Program
                 case "restore-preset":
                 {
                     var options = ParseOptions(args[2..]);
-                    _ = ResolveCamera(options);
-                    _ = ParsePreset(args, 1);
-                    throw new NotSupportedException("Logitech preset recall is not implemented yet.");
+                    UvcCamera.RestorePreset(ResolveCamera(options), ParsePreset(args, 1));
+                    return Ok();
                 }
                 case "save-preset":
                 {
                     var options = ParseOptions(args[2..]);
-                    _ = ResolveCamera(options);
-                    _ = ParsePreset(args, 1);
                     WarnUnsupportedPresetName(options);
-                    throw new NotSupportedException("Logitech preset save is not implemented yet.");
+                    UvcCamera.SavePreset(ResolveCamera(options), ParsePreset(args, 1));
+                    return Ok();
                 }
                 case "zoom-absolute":
                 {
@@ -76,8 +74,8 @@ class Program
     {
         Console.WriteLine("Usage:");
         Console.WriteLine("  PTZControlConsole list-devices");
-        Console.WriteLine("  PTZControlConsole restore-preset N [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole save-preset N [--camera \"NamePart\"] [--name \"Title\"]");
+        Console.WriteLine("  PTZControlConsole restore-preset 0..8 [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\"] [--name \"Title\"]");
         Console.WriteLine("  PTZControlConsole zoom-absolute PERCENT [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole zoom-relative PERCENT_DELTA [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole move-absolute [--x PERCENT] [--y PERCENT] [--camera \"NamePart\"]");

@@ -90,5 +90,11 @@ namespace PTZControl.Uvc
             if (hr != 0) Marshal.ThrowExceptionForHR(hr);
             return value;
         }
+
+        public static void SavePreset(string cam, int presetNumber) =>
+            LogitechExtensionUnit.SavePreset(cam, presetNumber);
+
+        public static void RestorePreset(string cam, int presetNumber) =>
+            LogitechExtensionUnit.RestorePreset(cam, presetNumber);
     }
 }
