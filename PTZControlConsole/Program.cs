@@ -1,9 +1,12 @@
 using System;
 using PTZControl.Uvc;
+using PTZControlConsole;
 using UvcCameraProperty = PTZControl.Uvc.CameraProperty;
 
 class Program
 {
+    private static readonly ICameraBackend CameraBackend = CameraBackendFactory.Create();
+
     static int Main(string[] args)
     {
         try
@@ -38,14 +41,14 @@ class Program
             case "restore-preset":
             {
                 var options = ParseOptions(args[2..]);
-                UvcCamera.RestorePreset(ResolveCamera(options), ParsePreset(args, 1));
+                CameraBackend.RestorePreset(ResolveCamera(options), ParsePreset(args, 1));
                 return Ok();
             }
             case "save-preset":
             {
                 var options = ParseOptions(args[2..]);
                 WarnUnsupportedPresetName(options);
-                UvcCamera.SavePreset(ResolveCamera(options), ParsePreset(args, 1));
+                CameraBackend.SavePreset(ResolveCamera(options), ParsePreset(args, 1));
                 return Ok();
             }
             case "zoom-absolute":
@@ -98,7 +101,7 @@ class Program
 
     static int ListDevices()
     {
-        foreach (var cam in UvcCamera.Enumerate())
+        foreach (var cam in CameraBackend.Enumerate())
             Console.WriteLine(string.IsNullOrWhiteSpace(cam.MonikerString) ? cam.Name : $"{cam.Name}\t{cam.MonikerString}");
         return 0;
     }
@@ -112,14 +115,14 @@ class Program
     static int SetAbsoluteZoom(string camera, int percent)
     {
         var zoom = ScalePercentToValue(camera, UvcCameraProperty.Zoom, percent);
-        UvcCamera.SetPanTiltZoom(camera, zoom: zoom);
+        CameraBackend.SetPanTiltZoom(camera, zoom: zoom);
         return Ok();
     }
 
     static int SetRelativeZoom(string camera, int deltaPercent)
     {
         var value = AddPercentDelta(camera, UvcCameraProperty.Zoom, deltaPercent);
-        UvcCamera.SetPanTiltZoom(camera, zoom: value);
+        CameraBackend.SetPanTiltZoom(camera, zoom: value);
         return Ok();
     }
 
@@ -128,7 +131,7 @@ class Program
         var pan = options.X is null ? (int?)null : ScalePercentToValue(camera, UvcCameraProperty.Pan, options.X.Value);
         var tilt = options.Y is null ? (int?)null : ScalePercentToValue(camera, UvcCameraProperty.Tilt, options.Y.Value);
         if (pan is null && tilt is null) throw new ArgumentException("move-absolute requires --x and/or --y.");
-        UvcCamera.SetPanTiltZoom(camera, pan, tilt);
+        CameraBackend.SetPanTiltZoom(camera, pan, tilt);
         return Ok();
     }
 
@@ -137,7 +140,7 @@ class Program
         var pan = options.X is null ? (int?)null : AddPercentDelta(camera, UvcCameraProperty.Pan, options.X.Value);
         var tilt = options.Y is null ? (int?)null : AddPercentDelta(camera, UvcCameraProperty.Tilt, options.Y.Value);
         if (pan is null && tilt is null) throw new ArgumentException("move-relative requires --x and/or --y.");
-        UvcCamera.SetPanTiltZoom(camera, pan, tilt);
+        CameraBackend.SetPanTiltZoom(camera, pan, tilt);
         return Ok();
     }
 
@@ -152,7 +155,7 @@ class Program
         if (!string.IsNullOrWhiteSpace(options.Camera))
             return options.Camera;
 
-        var cameras = UvcCamera.Enumerate();
+        var cameras = CameraBackend.Enumerate();
         if (cameras.Count == 0)
             throw new InvalidOperationException("No camera found.");
         return cameras[0].Name;
@@ -161,14 +164,14 @@ class Program
     static int ScalePercentToValue(string camera, UvcCameraProperty property, int percent)
     {
         percent = Math.Clamp(percent, 0, 100);
-        var range = UvcCamera.GetRange(camera, property);
+        var range = CameraBackend.GetRange(camera, property);
         return range.min + (int)Math.Round((range.max - range.min) * (percent / 100.0));
     }
 
     static int AddPercentDelta(string camera, UvcCameraProperty property, int deltaPercent)
     {
-        var range = UvcCamera.GetRange(camera, property);
-        var current = UvcCamera.GetValue(camera, property);
+        var range = CameraBackend.GetRange(camera, property);
+        var current = CameraBackend.GetValue(camera, property);
         var delta = (int)Math.Round((range.max - range.min) * (deltaPercent / 100.0));
         return Math.Clamp(current + delta, range.min, range.max);
     }
