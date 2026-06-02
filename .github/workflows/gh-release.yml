@@ -7,12 +7,14 @@ on:
 
 jobs:
   build-x64:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Setup MSBuild path
-      uses: microsoft/setup-msbuild@v1.0.2
+      uses: microsoft/setup-msbuild@v2
+      with:
+        vs-version: '[18.0,19.0)'
 
     - name: Restore NuGet packages
       run: nuget restore PTZControl/PTZControl.sln
@@ -21,18 +23,20 @@ jobs:
       run: msbuild PTZControl/PTZControl.sln /p:Configuration=Release /p:Platform=x64
 
     - name: Upload PTZControl (x64) as artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: PTZControl-x64
         path: ${{ github.workspace }}\PTZControl\x64\Release\PTZControl.exe
 
   build-x86:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Setup MSBuild path
-      uses: microsoft/setup-msbuild@v1.0.2
+      uses: microsoft/setup-msbuild@v2
+      with:
+        vs-version: '[18.0,19.0)'
 
     - name: Restore NuGet packages
       run: nuget restore PTZControl/PTZControl.sln
@@ -41,7 +45,7 @@ jobs:
       run: msbuild PTZControl/PTZControl.sln /p:Configuration=Release /p:Platform=x86
 
     - name: Upload PTZControl (x86) as artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: PTZControl-x86
         path: ${{ github.workspace }}\PTZControl\Release\PTZControl.exe
@@ -51,14 +55,14 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
   
       - name: Extract Tag Name
         id: tagname
         run: echo "TAG_NAME=$(echo ${{ github.ref }} | sed 's/refs\/tags\///')" >> $GITHUB_ENV
   
       - name: Download x64 artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: PTZControl-x64
   
@@ -68,7 +72,7 @@ jobs:
           mv ./PTZControl.exe PTZControl-${{ env.TAG_NAME }}/x64/
   
       - name: Download x86 artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: PTZControl-x86
   
@@ -81,23 +85,8 @@ jobs:
         run: zip -r PTZControl.zip PTZControl-${{ env.TAG_NAME }}
   
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG_NAME }}
-          release_name: PTZControl ${{ env.TAG_NAME }}
-          draft: false
-          prerelease: false
-  
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./PTZControl.zip
-          asset_name: PTZControl.zip
-          asset_content_type: application/zip
+          name: PTZControl ${{ env.TAG_NAME }}
+          files: ./PTZControl.zip
       
