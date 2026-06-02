@@ -25,11 +25,20 @@ jobs:
     - name: Build the PTZControl project (x64)
       run: msbuild PTZControl/PTZControl.sln /p:Configuration=Release /p:Platform=x64
 
+    - name: Publish PTZControlConsole (x64)
+      run: dotnet publish PTZControl/PTZControlConsole/PTZControlConsole.csproj -c Release -r win-x64 --self-contained false -o ${{ github.workspace }}\console-win-x64
+
     - name: Upload PTZControl (x64) as artifact
       uses: actions/upload-artifact@v4
       with:
         name: PTZControl-x64
         path: ${{ github.workspace }}\PTZControl\x64\Release\PTZControl.exe
+
+    - name: Upload PTZControlConsole (x64) as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PTZControlConsole-win-x64
+        path: ${{ github.workspace }}\console-win-x64\*
 
   build-x86:
     runs-on: windows-2025-vs2026
@@ -47,11 +56,20 @@ jobs:
     - name: Build the PTZControl project (x86)
       run: msbuild PTZControl/PTZControl.sln /p:Configuration=Release /p:Platform=x86
 
+    - name: Publish PTZControlConsole (x86)
+      run: dotnet publish PTZControl/PTZControlConsole/PTZControlConsole.csproj -c Release -r win-x86 --self-contained false -o ${{ github.workspace }}\console-win-x86
+
     - name: Upload PTZControl (x86) as artifact
       uses: actions/upload-artifact@v4
       with:
         name: PTZControl-x86
         path: ${{ github.workspace }}\PTZControl\Release\PTZControl.exe
+
+    - name: Upload PTZControlConsole (x86) as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PTZControlConsole-win-x86
+        path: ${{ github.workspace }}\console-win-x86\*
 
   create-release:
     needs: [build-x64, build-x86]
@@ -85,13 +103,31 @@ jobs:
         run: |
           mkdir -p PTZControl-${{ env.TAG_NAME }}/x86
           mv ./PTZControl.exe PTZControl-${{ env.TAG_NAME }}/x86/
+
+      - name: Download console x64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PTZControlConsole-win-x64
+          path: PTZControlConsole-${{ env.TAG_NAME }}-win-x64
+
+      - name: Download console x86 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PTZControlConsole-win-x86
+          path: PTZControlConsole-${{ env.TAG_NAME }}-win-x86
   
       - name: Zip Files
-        run: zip -r PTZControl.zip PTZControl-${{ env.TAG_NAME }}
+        run: |
+          zip -r PTZControl.zip PTZControl-${{ env.TAG_NAME }}
+          zip -r PTZControlConsole-win-x64.zip PTZControlConsole-${{ env.TAG_NAME }}-win-x64
+          zip -r PTZControlConsole-win-x86.zip PTZControlConsole-${{ env.TAG_NAME }}-win-x86
   
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           name: PTZControl.exe ${{ env.VERSION }}
-          files: ./PTZControl.zip
+          files: |
+            ./PTZControl.zip
+            ./PTZControlConsole-win-x64.zip
+            ./PTZControlConsole-win-x86.zip
       
