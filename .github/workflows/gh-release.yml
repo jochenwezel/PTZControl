@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build-x64:
     runs-on: windows-2025-vs2026
@@ -59,7 +62,9 @@ jobs:
   
       - name: Extract Tag Name
         id: tagname
-        run: echo "TAG_NAME=$(echo ${{ github.ref }} | sed 's/refs\/tags\///')" >> $GITHUB_ENV
+        run: |
+          echo "TAG_NAME=$(echo ${{ github.ref }} | sed 's/refs\/tags\///')" >> $GITHUB_ENV
+          echo "VERSION=$(echo ${{ github.ref }} | sed 's/refs\/tags\/v//')" >> $GITHUB_ENV
   
       - name: Download x64 artifact
         uses: actions/download-artifact@v4
@@ -87,6 +92,6 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: PTZControl ${{ env.TAG_NAME }}
+          name: PTZControl.exe ${{ env.VERSION }}
           files: ./PTZControl.zip
       
