@@ -26,7 +26,7 @@ jobs:
       run: msbuild PTZControl/PTZControl.sln /p:Configuration=Release /p:Platform=x64
 
     - name: Publish PTZControlConsole (x64)
-      run: dotnet publish PTZControl/PTZControlConsole/PTZControlConsole.csproj -c Release -r win-x64 --self-contained false -o ${{ github.workspace }}\console-win-x64
+      run: dotnet publish PTZControlConsole/PTZControlConsole.csproj -c Release -r win-x64 --self-contained false -o ${{ github.workspace }}\console-win-x64
 
     - name: Upload PTZControl (x64) as artifact
       uses: actions/upload-artifact@v4
@@ -57,7 +57,7 @@ jobs:
       run: msbuild PTZControl/PTZControl.sln /p:Configuration=Release /p:Platform=x86
 
     - name: Publish PTZControlConsole (x86)
-      run: dotnet publish PTZControl/PTZControlConsole/PTZControlConsole.csproj -c Release -r win-x86 --self-contained false -o ${{ github.workspace }}\console-win-x86
+      run: dotnet publish PTZControlConsole/PTZControlConsole.csproj -c Release -r win-x86 --self-contained false -o ${{ github.workspace }}\console-win-x86
 
     - name: Upload PTZControl (x86) as artifact
       uses: actions/upload-artifact@v4
