@@ -7,7 +7,7 @@ camera-control backend is fully implemented.
 ## Requirements
 
 - Linux x64
-- .NET 8 Runtime installed
+- .NET 8 Runtime or a later major .NET runtime installed
 - Access to the camera device, usually `/dev/video*`
 
 On Ubuntu, install the .NET 8 runtime with:
@@ -19,7 +19,15 @@ sudo apt-get install -y dotnet-runtime-8.0
 
 If your Ubuntu installation does not provide `dotnet-runtime-8.0` from its
 configured package sources, follow Microsoft's .NET installation instructions
-for your Ubuntu version.
+for your Ubuntu version:
+
+- .NET 8 downloads: https://dotnet.microsoft.com/download/dotnet/8.0
+- Install .NET on Ubuntu: https://learn.microsoft.com/dotnet/core/install/linux-ubuntu
+
+The app targets .NET 8 and is configured to roll forward to later major .NET
+runtime versions. This means that an installed .NET 10 runtime should be enough
+to start the app, even without .NET 8 installed. If runtime selection still fails
+on a specific machine, set `DOTNET_ROLL_FORWARD=Major` before starting the app.
 
 ## Installation
 
@@ -28,7 +36,7 @@ unpack it:
 
 ```bash
 unzip PTZControlConsole-linux-x64-beta.zip
-cd PTZControlConsole-v2.4.2.0-linux-x64-beta
+cd PTZControlConsole-v2.4.2.1-linux-x64-beta
 chmod +x PTZControlConsole
 ```
 
