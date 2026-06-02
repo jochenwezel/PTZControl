@@ -71,7 +71,7 @@ If you click on a direction button once, the motor is turned on and off again af
 If the direction button remains pressed, the motor remains switched on for the corresponding direction until the button is released again.
 This control seems more effective and accurate to me and is the standard. The disadvantage is that if the timer interval is too small, the camera does not react immediately when a button is clicked. But since precision was more important to me because our camera is installed relatively far away from the podium, I use this setting with a 70msec timer.
 
-## Hotkeys
+## Normal Hotkeys
 The program has serveral hotkeys that allows a control without the mouse when it has the focus.
 - Pan-Tilt control with Left, Right, Up, Down keys.
 - Home position with Num-0, Home keys.
@@ -81,6 +81,19 @@ The program has serveral hotkeys that allows a control without the mouse when it
 - Zoom in/out Page-Up/Down, Num+Plus, Num-Minus
 - Select Camera 1. Alt+1, Alt+Num-1, Alt+Page-Up
 - Select Camera 2. Alt+2, Alt+Num-2, Alt+Page-Down
+
+## Global Hotkeys
+There are also global hotkeys defined. They work from any active program. Normal hotkeys work only as long as the PTZControl program has the input focus. All global hotkeys use the Windows key in combination with Ctrl+Alt key. The global hotkeys defined are:
+- For camera 1
+	- Home position => Windows-Key + 0 (on the numeric key pad) 
+	- Memory Position 1-8 => Windows-Key + 1-8 (on the numeric key pad)
+- For camera 2
+	- Home position => Windows-Key + Ctrl + 0 (on the numeric key pad) 
+	- Memory Position 1-8 => Windows-Key + Ctrl + 1-8 (on the numeric key pad)
+- For camera 3
+	- Home position => Windows-Key + Alt + 0 (on the numeric key pad) 
+	- Memory Position 1-8 => Windows-Key + Alt + 1-8 (on the numeric key pad)
+If camera 2/3 are not available the hotkeys are ignored and not defined.
 
 
 ## Command Line Options
