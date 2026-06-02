@@ -7,6 +7,5 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\PTZControl.Uvc\PTZControl.Uvc.csproj" />
-    <ProjectReference Include="..\PTZControlBridge\PTZControlBridge.vcxproj" />
   </ItemGroup>
 </Project>

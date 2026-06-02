@@ -75,5 +75,20 @@ namespace PTZControl.Uvc
             ctl.GetRange(p, out int min, out int max, out int step, out int def, out _);
             return (min, max, step, def);
         }
+
+        public static int GetValue(string cam, CameraProperty prop)
+        {
+            var ctl = GetControl(cam, out var src, out var graph);
+            var p = prop switch
+            {
+                CameraProperty.Pan => CameraControlProperty.Pan,
+                CameraProperty.Tilt => CameraControlProperty.Tilt,
+                CameraProperty.Zoom => CameraControlProperty.Zoom,
+                _ => throw new NotSupportedException(prop.ToString())
+            };
+            int hr = ctl.Get(p, out int value, out _);
+            if (hr != 0) Marshal.ThrowExceptionForHR(hr);
+            return value;
+        }
     }
 }
