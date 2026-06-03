@@ -146,12 +146,12 @@ jobs:
           name: PTZControlConsole-linux-x64-beta
           path: PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta
   
-      - name: Zip Files
+      - name: Package Files
         run: |
           zip -r PTZControl.zip PTZControl-${{ env.TAG_NAME }}
           zip -r PTZControlConsole-win-x64.zip PTZControlConsole-${{ env.TAG_NAME }}-win-x64
           zip -r PTZControlConsole-win-x86.zip PTZControlConsole-${{ env.TAG_NAME }}-win-x86
-          zip -r PTZControlConsole-linux-x64-beta.zip PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta
+          tar -czf PTZControlConsole-linux-x64-beta.tar.gz PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta
   
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -162,5 +162,5 @@ jobs:
             ./PTZControl.zip
             ./PTZControlConsole-win-x64.zip
             ./PTZControlConsole-win-x86.zip
-            ./PTZControlConsole-linux-x64-beta.zip
+            ./PTZControlConsole-linux-x64-beta.tar.gz
       

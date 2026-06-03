@@ -1,8 +1,9 @@
 # PTZControlConsole on Linux
 
-`PTZControlConsole-linux-x64-beta.zip` is an experimental Linux release-candidate
-build. It is intended to verify packaging, camera discovery, and standard V4L2
-pan, tilt, and zoom controls before the Linux backend is marked stable.
+`PTZControlConsole-linux-x64-beta.tar.gz` is an experimental Linux
+release-candidate build. It is intended to verify packaging, camera discovery,
+and standard V4L2 pan, tilt, and zoom controls before the Linux backend is
+marked stable.
 
 ## Requirements
 
@@ -31,13 +32,12 @@ on a specific machine, set `DOTNET_ROLL_FORWARD=Major` before starting the app.
 
 ## Installation
 
-Download `PTZControlConsole-linux-x64-beta.zip` from the GitHub release page and
+Download `PTZControlConsole-linux-x64-beta.tar.gz` from the GitHub release page and
 unpack it:
 
 ```bash
-unzip PTZControlConsole-linux-x64-beta.zip
-cd PTZControlConsole-v2.4.2.1-linux-x64-beta
-chmod +x PTZControlConsole
+tar -xzf PTZControlConsole-linux-x64-beta.tar.gz
+cd PTZControlConsole-v2.4.2.4-linux-x64-beta
 ```
 
 Run the device discovery command:
