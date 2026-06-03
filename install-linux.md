@@ -1,8 +1,8 @@
 # PTZControlConsole on Linux
 
-`PTZControlConsole-linux-x64-beta.zip` is an experimental Linux preview build.
-It is intended to verify packaging and basic camera discovery before the Linux
-camera-control backend is fully implemented.
+`PTZControlConsole-linux-x64-beta.zip` is an experimental Linux release-candidate
+build. It is intended to verify packaging, camera discovery, and standard V4L2
+pan, tilt, and zoom controls before the Linux backend is marked stable.
 
 ## Requirements
 
@@ -49,12 +49,38 @@ Run the device discovery command:
 The preview backend lists `/dev/video*` devices and tries to read display names
 from `/sys/class/video4linux/<device>/name`.
 
+Test standard V4L2 camera controls:
+
+```bash
+./PTZControlConsole zoom-relative 10 --camera "PTZ"
+./PTZControlConsole zoom-relative -10 --camera "PTZ"
+./PTZControlConsole move-relative --x 10 --camera "PTZ"
+./PTZControlConsole move-relative --x -10 --camera "PTZ"
+./PTZControlConsole move-relative --y 10 --camera "PTZ"
+./PTZControlConsole move-relative --y -10 --camera "PTZ"
+./PTZControlConsole zoom-absolute 0 --camera "PTZ"
+./PTZControlConsole zoom-absolute 50 --camera "PTZ"
+./PTZControlConsole zoom-absolute 100 --camera "PTZ"
+```
+
+`--camera` may be either a name fragment from `list-devices` or a device path
+such as `/dev/video0`.
+
 ## Current Limitations
 
-Linux camera control is not implemented yet. Commands such as `move-relative`,
-`zoom-relative`, `restore-preset`, and `save-preset` currently fail with a clear
-`NotSupportedException` message and an exit code other than `0`.
+Linux camera control currently uses standard V4L2 absolute pan, tilt, and zoom
+controls:
 
-The next implementation step is a V4L2 backend for standard pan, tilt, and zoom
-controls. Logitech preset and home support may require UVC extension-unit access
-through Linux `ioctl` calls and must be validated with a real PTZ Pro 2 camera.
+- `V4L2_CID_PAN_ABSOLUTE`
+- `V4L2_CID_TILT_ABSOLUTE`
+- `V4L2_CID_ZOOM_ABSOLUTE`
+
+If a camera or driver does not expose one of these controls, the related command
+fails with a clear error and an exit code other than `0`.
+
+Preset and home support is not implemented on Linux yet. `restore-preset` and
+`save-preset` currently fail with a clear `NotSupportedException` message.
+
+The next implementation step for Linux preset and home support is Logitech UVC
+extension-unit access through Linux `ioctl` calls. This must be validated with a
+real PTZ Pro 2 camera.

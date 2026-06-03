@@ -56,6 +56,16 @@ internal sealed class WindowsUvcCameraBackend : ICameraBackend
 
 internal sealed class LinuxPreviewCameraBackend : ICameraBackend
 {
+    private const int OReadWrite = 2;
+    private const uint V4L2CtrlFlagDisabled = 0x0001;
+    private const uint V4L2CtrlFlagInactive = 0x0010;
+    private const uint V4L2CidPanAbsolute = 0x009a0908;
+    private const uint V4L2CidTiltAbsolute = 0x009a0909;
+    private const uint V4L2CidZoomAbsolute = 0x009a090d;
+    private const ulong VidIoctlQueryCtrl = 0xC0445624;
+    private const ulong VidIoctlGCtrl = 0xC008561B;
+    private const ulong VidIoctlSCtrl = 0xC008561C;
+
     public IReadOnlyList<CameraInfo> Enumerate()
     {
         const string devicesPath = "/dev";
@@ -72,20 +82,86 @@ internal sealed class LinuxPreviewCameraBackend : ICameraBackend
             .ToList();
     }
 
-    public (int min, int max, int step, int def) GetRange(string camera, CameraProperty property) =>
-        throw LinuxControlNotSupported();
+    public (int min, int max, int step, int def) GetRange(string camera, CameraProperty property)
+    {
+        using var device = OpenCamera(camera);
+        var query = QueryControl(device.FileDescriptor, property);
+        return (query.Minimum, query.Maximum, query.Step, query.DefaultValue);
+    }
 
-    public int GetValue(string camera, CameraProperty property) =>
-        throw LinuxControlNotSupported();
+    public int GetValue(string camera, CameraProperty property)
+    {
+        using var device = OpenCamera(camera);
+        var control = new V4L2Control { Id = ToV4L2ControlId(property) };
+        ThrowIfIoctlFailed(ioctl(device.FileDescriptor, VidIoctlGCtrl, ref control), $"read {property}");
+        return control.Value;
+    }
 
-    public void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null) =>
-        throw LinuxControlNotSupported();
+    public void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null)
+    {
+        using var device = OpenCamera(camera);
+        if (pan.HasValue)
+            SetValue(device.FileDescriptor, CameraProperty.Pan, pan.Value);
+        if (tilt.HasValue)
+            SetValue(device.FileDescriptor, CameraProperty.Tilt, tilt.Value);
+        if (zoom.HasValue)
+            SetValue(device.FileDescriptor, CameraProperty.Zoom, zoom.Value);
+    }
 
     public void SavePreset(string camera, int presetNumber) =>
-        throw LinuxControlNotSupported();
+        throw LinuxPresetNotSupported();
 
     public void RestorePreset(string camera, int presetNumber) =>
-        throw LinuxControlNotSupported();
+        throw LinuxPresetNotSupported();
+
+    private static void SetValue(int fileDescriptor, CameraProperty property, int value)
+    {
+        var range = QueryControl(fileDescriptor, property);
+        value = Math.Clamp(value, range.Minimum, range.Maximum);
+        var control = new V4L2Control { Id = ToV4L2ControlId(property), Value = value };
+        ThrowIfIoctlFailed(ioctl(fileDescriptor, VidIoctlSCtrl, ref control), $"set {property}");
+    }
+
+    private static V4L2QueryControl QueryControl(int fileDescriptor, CameraProperty property)
+    {
+        var query = new V4L2QueryControl { Id = ToV4L2ControlId(property) };
+        ThrowIfIoctlFailed(ioctl(fileDescriptor, VidIoctlQueryCtrl, ref query), $"query {property}");
+
+        if ((query.Flags & (V4L2CtrlFlagDisabled | V4L2CtrlFlagInactive)) != 0)
+            throw new NotSupportedException($"Linux V4L2 control {property} is disabled or inactive on this camera.");
+
+        return query;
+    }
+
+    private static uint ToV4L2ControlId(CameraProperty property) => property switch
+    {
+        CameraProperty.Pan => V4L2CidPanAbsolute,
+        CameraProperty.Tilt => V4L2CidTiltAbsolute,
+        CameraProperty.Zoom => V4L2CidZoomAbsolute,
+        _ => throw new NotSupportedException($"Linux V4L2 control {property} is not supported.")
+    };
+
+    private static LinuxVideoDevice OpenCamera(string camera)
+    {
+        var devicePath = ResolveDevicePath(camera);
+        var fileDescriptor = open(devicePath, OReadWrite);
+        if (fileDescriptor < 0)
+            throw new InvalidOperationException($"Could not open camera device '{devicePath}'.", new IOException(Marshal.GetLastPInvokeError().ToString()));
+        return new LinuxVideoDevice(devicePath, fileDescriptor);
+    }
+
+    private static string ResolveDevicePath(string camera)
+    {
+        if (camera.StartsWith("/dev/video", StringComparison.OrdinalIgnoreCase) && File.Exists(camera))
+            return camera;
+
+        var match = new LinuxPreviewCameraBackend().Enumerate()
+            .FirstOrDefault(device =>
+                device.Name.Contains(camera, StringComparison.OrdinalIgnoreCase) ||
+                device.MonikerString.Contains(camera, StringComparison.OrdinalIgnoreCase));
+
+        return match?.MonikerString ?? throw new InvalidOperationException($"Camera '{camera}' not found.");
+    }
 
     private static string GetVideoDeviceName(string devicePath)
     {
@@ -101,8 +177,63 @@ internal sealed class LinuxPreviewCameraBackend : ICameraBackend
         return deviceName;
     }
 
-    private static NotSupportedException LinuxControlNotSupported() =>
-        new("Linux camera control is not implemented yet. This preview build can list /dev/video* devices only.");
+    private static NotSupportedException LinuxPresetNotSupported() =>
+        new("Linux preset/home control is not implemented yet. Standard V4L2 pan, tilt, and zoom controls are supported in this release candidate.");
+
+    private static void ThrowIfIoctlFailed(int result, string operation)
+    {
+        if (result >= 0)
+            return;
+
+        var errno = Marshal.GetLastPInvokeError();
+        throw new NotSupportedException($"Linux V4L2 {operation} failed with errno {errno}.");
+    }
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int open([MarshalAs(UnmanagedType.LPUTF8Str)] string pathname, int flags);
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int close(int fd);
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int ioctl(int fd, ulong request, ref V4L2QueryControl queryControl);
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int ioctl(int fd, ulong request, ref V4L2Control control);
+
+    private sealed class LinuxVideoDevice(string path, int fileDescriptor) : IDisposable
+    {
+        public int FileDescriptor { get; } = fileDescriptor;
+
+        public void Dispose()
+        {
+            if (FileDescriptor >= 0)
+                close(FileDescriptor);
+        }
+
+        public override string ToString() => path;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct V4L2Control
+    {
+        public uint Id;
+        public int Value;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    private unsafe struct V4L2QueryControl
+    {
+        public uint Id;
+        public uint Type;
+        public fixed byte Name[32];
+        public int Minimum;
+        public int Maximum;
+        public int Step;
+        public int DefaultValue;
+        public uint Flags;
+        public fixed uint Reserved[2];
+    }
 }
 
 internal sealed class UnsupportedCameraBackend(string message) : ICameraBackend
