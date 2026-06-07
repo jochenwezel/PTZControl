@@ -7,6 +7,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <Copyright>PTZControl contributors</Copyright>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\PTZControl.Uvc\PTZControl.Uvc.csproj" />

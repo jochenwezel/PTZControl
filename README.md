@@ -30,6 +30,13 @@ The original project remains the upstream reference for the classic PTZControl
 application. Fork-specific feature work and test feedback are tracked in this
 repository's issues.
 
+## License and attribution
+
+PTZControl is originally created by Martin Richter and licensed under GPL-3.0.
+This fork keeps the project under GPL-3.0 and adds automation-focused console,
+packaging, and cross-platform metadata work. See [LICENSE](LICENSE) and
+[NOTICE.md](NOTICE.md).
+
 ## Documentation
 
 - [Command syntax](docs/syntax.md)
