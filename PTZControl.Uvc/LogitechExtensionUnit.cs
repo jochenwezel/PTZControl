@@ -122,7 +122,9 @@ namespace PTZControl.Uvc
         private static IKsControl GetKsControl(string cameraNamePart)
         {
             var camera = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice)
-                .FirstOrDefault(d => d.Name.Contains(cameraNamePart, StringComparison.OrdinalIgnoreCase))
+                .FirstOrDefault(d =>
+                    d.Name.Contains(cameraNamePart, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrWhiteSpace(d.DevicePath) && d.DevicePath.Contains(cameraNamePart, StringComparison.OrdinalIgnoreCase)))
                 ?? throw new InvalidOperationException($"Kamera '{cameraNamePart}' nicht gefunden.");
 
             var iid = typeof(IKsControl).GUID;

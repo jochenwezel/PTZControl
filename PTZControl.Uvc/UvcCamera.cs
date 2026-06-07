@@ -37,7 +37,9 @@ namespace PTZControl.Uvc
         private static IAMCameraControl GetControl(string cameraNamePart, out IBaseFilter src, out IFilterGraph2 graph)
         {
             var cams = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
-            var cam = cams.FirstOrDefault(d => d.Name.Contains(cameraNamePart, StringComparison.OrdinalIgnoreCase))
+            var cam = cams.FirstOrDefault(d =>
+                    d.Name.Contains(cameraNamePart, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrWhiteSpace(d.DevicePath) && d.DevicePath.Contains(cameraNamePart, StringComparison.OrdinalIgnoreCase)))
                    ?? throw new InvalidOperationException($"Kamera '{cameraNamePart}' nicht gefunden.");
 
             graph = (IFilterGraph2)new FilterGraph();

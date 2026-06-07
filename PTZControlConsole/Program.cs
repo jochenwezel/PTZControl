@@ -60,6 +60,11 @@ class Program
                 var options = ParseOptions(args[2..]);
                 return SetPresetName(options, ParsePreset(args, 1));
             }
+            case "set-camera-name":
+            {
+                var options = ParseOptions(args[1..]);
+                return SetCameraName(options);
+            }
             case "swap-preset-names":
             {
                 var options = ParseOptions(args[1..]);
@@ -130,19 +135,20 @@ class Program
     {
         Console.WriteLine("Usage:");
         Console.WriteLine("  PTZControlConsole list-devices");
-        Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole list-presets [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole get-preset-name 1..8 [--camera \"NamePart\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole set-preset-name 1..8 --name \"Title\" [--camera \"NamePart\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole list-presets [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole get-preset-name 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole set-preset-name 1..8 --name \"Title\" [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole set-camera-name --name \"Title\" --slot 1..3");
         Console.WriteLine("  PTZControlConsole swap-preset-names --slot-a 1..3 --slot-b 1..3");
-        Console.WriteLine("  PTZControlConsole restore-home --target zoom|move|all [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole restore-preset 1..8 [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\"] [--name \"Title\"]");
-        Console.WriteLine("  PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_DELTA] [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole restore-home --target zoom|move|all [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole restore-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\"] [--name \"Title\"]");
+        Console.WriteLine("  PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_DELTA] [--camera \"NamePart\" | --device-path \"DevicePath\"]");
     }
 
     static int ListDevices()
@@ -169,6 +175,16 @@ class Program
         return Ok();
     }
 
+    static int SetCameraName(Options options)
+    {
+        if (string.IsNullOrWhiteSpace(options.Name))
+            throw new ArgumentException("set-camera-name requires --name.");
+
+        var slot = RequireSlot(options.Slot, "--slot");
+        WriteCameraSlotAlias(slot - 1, options.Name);
+        return Ok();
+    }
+
     static int SwapPresetNames(int slotA, int slotB)
     {
         if (slotA == slotB)
@@ -192,9 +208,16 @@ class Program
         var (cameraName, slotIndex) = ResolveCameraSlot(camera);
         Console.WriteLine($"Camera Device Name: {cameraName}");
         if (slotIndex is not null)
+        {
             Console.WriteLine($"PTZControl app camera slot: {slotIndex.Value + 1}");
+            var alias = TryReadCameraSlotAlias(slotIndex.Value);
+            if (!string.IsNullOrWhiteSpace(alias))
+                Console.WriteLine($"Camera Slot Alias: {alias}");
+        }
         else
+        {
             Console.WriteLine("PTZControl app camera slot: not available");
+        }
         Console.WriteLine("Preset storage: camera Logitech extension unit");
         Console.WriteLine("Preset values: not readable by the known PTZControl Logitech extension-unit API");
         Console.WriteLine("Preset names: PTZControl app-side tooltip metadata");
@@ -211,50 +234,67 @@ class Program
 
     static int PrintCameraDeviceInfo(string camera)
     {
-        var match = CameraBackend.Enumerate()
-            .FirstOrDefault(cam => cam.Name.Contains(camera, StringComparison.OrdinalIgnoreCase));
+        var (match, slotIndex) = ResolveCameraInfo(camera);
 
-        Console.WriteLine($"Camera Device Name: {match?.Name ?? camera}");
+        Console.WriteLine("Camera:");
+        Console.WriteLine($"  Device Name: {match?.Name ?? camera}");
         if (!string.IsNullOrWhiteSpace(match?.MonikerString))
-            Console.WriteLine($"Camera Device Path: {match.MonikerString}");
-        Console.WriteLine("CLI absolute percent range: 0..100");
+            Console.WriteLine($"  Device Path: {match.MonikerString}");
+        if (slotIndex is not null)
+        {
+            Console.WriteLine($"  PTZControl Slot: {slotIndex.Value + 1}");
+            var alias = TryReadCameraSlotAlias(slotIndex.Value);
+            if (!string.IsNullOrWhiteSpace(alias))
+                Console.WriteLine($"  Camera Slot Alias: {alias}");
+        }
+        Console.WriteLine();
         PrintPropertyInfo("Zoom", camera, UvcCameraProperty.Zoom);
+        Console.WriteLine();
         PrintPropertyInfo("Move X axis", camera, UvcCameraProperty.Pan);
+        Console.WriteLine();
         PrintPropertyInfo("Move Y axis", camera, UvcCameraProperty.Tilt);
-        Console.WriteLine("Home restore targets: zoom, move, all");
-        Console.WriteLine("Default restore targets: zoom, move, move-x, move-y, all");
-        Console.WriteLine("Preset range: restore 1..8, save 1..8");
+        Console.WriteLine();
+        Console.WriteLine("Available restore targets:");
+        Console.WriteLine("  Home: zoom, move, all");
+        Console.WriteLine("  Default: zoom, move, move-x, move-y, all");
+        Console.WriteLine();
+        Console.WriteLine("Presets:");
+        Console.WriteLine("  Restore range: 1..8");
+        Console.WriteLine("  Save range: 1..8");
         return 0;
     }
 
     static void PrintPropertyInfo(string label, string camera, UvcCameraProperty property)
     {
+        Console.WriteLine($"{label}:");
+        Console.WriteLine("  Percent range: 0..100");
         try
         {
             var range = CameraBackend.GetRange(camera, property);
-            Console.WriteLine($"* {label} raw min/max: {range.min}/{range.max}");
-            Console.WriteLine($"  {label} raw default: {range.def}");
-            Console.WriteLine($"  {label} raw step: {range.step}");
-            PrintCurrentPropertyValue(label, camera, property);
+            Console.WriteLine($"  Raw min: {range.min}");
+            Console.WriteLine($"  Raw max: {range.max}");
+            Console.WriteLine($"  Raw default: {range.def}");
+            Console.WriteLine($"  Raw step size: {range.step}");
+            PrintCurrentPropertyValue(camera, property);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"* {label}: not available ({GetErrorMessage(ex)})");
+            Console.WriteLine($"  Raw: not available ({GetErrorMessage(ex)})");
             if (ex.InnerException is not null)
                 Console.WriteLine($"  Cause: {GetErrorMessage(ex.InnerException)}");
         }
     }
 
-    static void PrintCurrentPropertyValue(string label, string camera, UvcCameraProperty property)
+    static void PrintCurrentPropertyValue(string camera, UvcCameraProperty property)
     {
         try
         {
             var current = CameraBackend.GetValue(camera, property);
-            Console.WriteLine($"  {label} raw current: {current}");
+            Console.WriteLine($"  Raw current: {current}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"  {label} raw current: not available ({GetErrorMessage(ex)})");
+            Console.WriteLine($"  Raw current: not available ({GetErrorMessage(ex)})");
             if (ex.InnerException is not null)
                 Console.WriteLine($"  Cause: {GetErrorMessage(ex.InnerException)}");
         }
@@ -348,6 +388,12 @@ class Program
 
     static string ResolveCamera(Options options)
     {
+        if (!string.IsNullOrWhiteSpace(options.Camera) && !string.IsNullOrWhiteSpace(options.DevicePath))
+            throw new ArgumentException("Use either --camera or --device-path, not both.");
+
+        if (!string.IsNullOrWhiteSpace(options.DevicePath))
+            return options.DevicePath;
+
         if (!string.IsNullOrWhiteSpace(options.Camera))
             return options.Camera;
 
@@ -362,17 +408,33 @@ class Program
         var cameras = CameraBackend.Enumerate();
         for (var i = 0; i < cameras.Count; i++)
         {
-            if (cameras[i].Name.Contains(camera, StringComparison.OrdinalIgnoreCase))
+            if (CameraMatches(cameras[i], camera))
                 return (cameras[i].Name, i < 3 ? i : null);
         }
 
         return (camera, null);
     }
 
+    static (CameraInfo? camera, int? slotIndex) ResolveCameraInfo(string camera)
+    {
+        var cameras = CameraBackend.Enumerate();
+        for (var i = 0; i < cameras.Count; i++)
+        {
+            if (CameraMatches(cameras[i], camera))
+                return (cameras[i], i < 3 ? i : null);
+        }
+
+        return (null, null);
+    }
+
+    static bool CameraMatches(CameraInfo camera, string query) =>
+        camera.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+        (!string.IsNullOrWhiteSpace(camera.MonikerString) && camera.MonikerString.Contains(query, StringComparison.OrdinalIgnoreCase));
+
     static int ResolvePresetNameSlot(Options options)
     {
-        if (options.Slot.HasValue && !string.IsNullOrWhiteSpace(options.Camera))
-            throw new ArgumentException("Use either --slot or --camera, not both.");
+        if (options.Slot.HasValue && (!string.IsNullOrWhiteSpace(options.Camera) || !string.IsNullOrWhiteSpace(options.DevicePath)))
+            throw new ArgumentException("Use either --slot, --camera, or --device-path.");
 
         if (options.Slot.HasValue)
             return RequireSlot(options.Slot, "--slot") - 1;
@@ -410,6 +472,37 @@ class Program
         throw PresetNamesNotSupported();
     }
 
+    static string? ReadCameraSlotAlias(int cameraSlotIndex)
+    {
+        if (OperatingSystem.IsWindows())
+            return ReadCameraSlotAliasFromRegistry(cameraSlotIndex);
+
+        throw PresetNamesNotSupported();
+    }
+
+    static string? TryReadCameraSlotAlias(int cameraSlotIndex)
+    {
+        try
+        {
+            return ReadCameraSlotAlias(cameraSlotIndex);
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    static void WriteCameraSlotAlias(int cameraSlotIndex, string name)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            WriteCameraSlotAliasToRegistry(cameraSlotIndex, name);
+            return;
+        }
+
+        throw PresetNamesNotSupported();
+    }
+
     [SupportedOSPlatform("windows")]
     static string? ReadPresetNameFromRegistry(int cameraSlotIndex, int preset)
     {
@@ -422,6 +515,22 @@ class Program
     static void WritePresetNameToRegistry(int cameraSlotIndex, int preset, string name)
     {
         var valueName = $"Tooltip{preset + cameraSlotIndex * 100}";
+        using var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\MRi-Software\PTZControl\Window");
+        key.SetValue(valueName, name, RegistryValueKind.String);
+    }
+
+    [SupportedOSPlatform("windows")]
+    static string? ReadCameraSlotAliasFromRegistry(int cameraSlotIndex)
+    {
+        var valueName = $"CameraAlias{cameraSlotIndex + 1}";
+        using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\MRi-Software\PTZControl\Window");
+        return key?.GetValue(valueName) as string;
+    }
+
+    [SupportedOSPlatform("windows")]
+    static void WriteCameraSlotAliasToRegistry(int cameraSlotIndex, string name)
+    {
+        var valueName = $"CameraAlias{cameraSlotIndex + 1}";
         using var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\MRi-Software\PTZControl\Window");
         key.SetValue(valueName, name, RegistryValueKind.String);
     }
@@ -514,6 +623,9 @@ class Program
                 case "--camera":
                     options.Camera = ReadValue(args, ref i);
                     break;
+                case "--device-path":
+                    options.DevicePath = ReadValue(args, ref i);
+                    break;
                 case "--name":
                     options.Name = ReadValue(args, ref i);
                     break;
@@ -590,6 +702,7 @@ class Program
     sealed class Options
     {
         public string? Camera { get; set; }
+        public string? DevicePath { get; set; }
         public string? Name { get; set; }
         public ValueMode? Mode { get; set; }
         public Target? Target { get; set; }
@@ -600,6 +713,7 @@ class Program
         public int? Y { get; set; }
         public bool HasAnyValue =>
             !string.IsNullOrWhiteSpace(Camera) ||
+            !string.IsNullOrWhiteSpace(DevicePath) ||
             !string.IsNullOrWhiteSpace(Name) ||
             Mode.HasValue ||
             Target.HasValue ||
