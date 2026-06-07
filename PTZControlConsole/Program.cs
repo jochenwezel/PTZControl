@@ -1,9 +1,12 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Runtime.Versioning;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CommandLine;
+using CommandLine.Text;
 using Microsoft.Win32;
 using PTZControl.Uvc;
 using PTZControlConsole;
@@ -12,6 +15,36 @@ using UvcCameraProperty = PTZControl.Uvc.CameraProperty;
 class Program
 {
     private static readonly ICameraBackend CameraBackend = CameraBackendFactory.Create();
+    private static readonly Type[] PublicVerbTypes =
+    {
+        typeof(ListDevicesOptions),
+        typeof(CamDeviceInfoOptions),
+        typeof(ListPresetsOptions),
+        typeof(GetPresetNameOptions),
+        typeof(SetPresetNameOptions),
+        typeof(ClearPresetNameOptions),
+        typeof(GetCameraNameOptions),
+        typeof(SetCameraNameOptions),
+        typeof(ClearCameraNameOptions),
+        typeof(SwapPresetNamesOptions),
+        typeof(ConfigOptions),
+        typeof(RestoreHomeOptions),
+        typeof(RestoreDefaultOptions),
+        typeof(RestorePresetOptions),
+        typeof(SavePresetOptions),
+        typeof(ZoomAbsoluteOptions),
+        typeof(ZoomRelativeOptions),
+        typeof(MoveAbsoluteOptions),
+        typeof(MoveRelativeOptions)
+    };
+    private static readonly Type[] AllVerbTypes = PublicVerbTypes.Concat(new[] { typeof(DocsOptions) }).ToArray();
+    private static readonly Parser RuntimeParser = new(settings =>
+    {
+        settings.HelpWriter = null;
+        settings.AutoHelp = true;
+        settings.AutoVersion = true;
+    });
+    private static readonly Parser DocumentationParser = new(settings => settings.HelpWriter = null);
 
     static int Main(string[] args)
     {
@@ -33,32 +66,44 @@ class Program
     {
         if (args.Length == 0)
         {
-            PrintUsage();
-            return 1;
+            Console.Error.Write(RenderMainHelp());
+            return 0;
         }
 
-        return Parser.Default.ParseArguments(args,
-            typeof(ListDevicesOptions),
-            typeof(CamDeviceInfoOptions),
-            typeof(ListPresetsOptions),
-            typeof(GetPresetNameOptions),
-            typeof(SetPresetNameOptions),
-            typeof(ClearPresetNameOptions),
-            typeof(GetCameraNameOptions),
-            typeof(SetCameraNameOptions),
-            typeof(ClearCameraNameOptions),
-            typeof(SwapPresetNamesOptions),
-            typeof(ConfigOptions),
-            typeof(RestoreHomeOptions),
-            typeof(RestoreDefaultOptions),
-            typeof(RestorePresetOptions),
-            typeof(SavePresetOptions),
-            typeof(ZoomAbsoluteOptions),
-            typeof(ZoomRelativeOptions),
-            typeof(MoveAbsoluteOptions),
-            typeof(MoveRelativeOptions))
-            .MapResult(RunParsed, _ => 1);
+        return RuntimeParser.ParseArguments(args, AllVerbTypes)
+            .MapResult(RunParsed, errors => PrintParserHelp(args));
     }
+
+    static int PrintParserHelp(string[] args)
+    {
+        if (args.Length == 1 && IsMainHelpRequest(args[0]))
+        {
+            Console.Error.Write(RenderMainHelp());
+            return 0;
+        }
+
+        if (args.Length == 2 && args[0].Equals("help", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.Write(CaptureParserHelp(new[] { args[1], "--help" }));
+            return 0;
+        }
+
+        if (args.Length == 1 && args[0].Equals("version", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine(GetVersionLine());
+            return 0;
+        }
+
+        Console.Error.Write(CaptureParserHelp(args));
+        return 1;
+    }
+
+    static bool IsMainHelpRequest(string arg) =>
+        arg.Equals("help", StringComparison.OrdinalIgnoreCase) ||
+        arg.Equals("--help", StringComparison.OrdinalIgnoreCase) ||
+        arg.Equals("-h", StringComparison.OrdinalIgnoreCase) ||
+        arg.Equals("--h", StringComparison.OrdinalIgnoreCase) ||
+        arg.Equals("-?", StringComparison.OrdinalIgnoreCase);
 
     static int RunParsed(object parsed) =>
         parsed switch
@@ -89,6 +134,7 @@ class Program
             ZoomRelativeOptions options => SetRelativeZoom(ResolveCamera(ToOptions(options)), options.ValueDelta, ParseMode(options.ModeName)),
             MoveAbsoluteOptions options => MoveAbsolute(ResolveCamera(ToOptions(options)), ToOptions(options), ParseMode(options.ModeName)),
             MoveRelativeOptions options => MoveRelative(ResolveCamera(ToOptions(options)), ToOptions(options), ParseMode(options.ModeName)),
+            DocsOptions options => GenerateDocs(options),
             _ => throw new ArgumentException("Unknown command.")
         };
 
@@ -109,37 +155,230 @@ class Program
     static string GetErrorMessage(Exception ex) =>
         string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
-    static void PrintUsage()
-    {
-        Console.WriteLine("Usage:");
-        Console.WriteLine("  PTZControlConsole list-devices");
-        Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole list-presets [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole get-preset-name 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole set-preset-name 1..8 --friendlyname \"Title\" [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole clear-preset-name 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole get-camera-name --slot 1..3");
-        Console.WriteLine("  PTZControlConsole set-camera-name --friendlyname \"Title\" --slot 1..3");
-        Console.WriteLine("  PTZControlConsole clear-camera-name --slot 1..3");
-        Console.WriteLine("  PTZControlConsole swap-preset-names --slot-a 1..3 --slot-b 1..3");
-        Console.WriteLine("  PTZControlConsole config --export [json-path]");
-        Console.WriteLine("  PTZControlConsole config --import json-path");
-        Console.WriteLine("  PTZControlConsole restore-home --target zoom|move|all [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole restore-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3] [--friendlyname \"Title\"]");
-        Console.WriteLine("  PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_DELTA] [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-    }
-
     static int ListDevices()
     {
         foreach (var cam in CameraBackend.Enumerate())
             Console.WriteLine(string.IsNullOrWhiteSpace(cam.MonikerString) ? cam.Name : $"{cam.Name}\t{cam.MonikerString}");
         return 0;
     }
+
+    static int GenerateDocs(DocsOptions options)
+    {
+        var output = string.IsNullOrWhiteSpace(options.OutputPath)
+            ? Path.Combine("docs", "generated")
+            : options.OutputPath;
+
+        var files = new Dictionary<string, string>
+        {
+            ["cli-help.md"] = GenerateCliHelpMarkdown(),
+            ["example-output.md"] = GenerateExampleOutputMarkdown()
+        };
+
+        if (options.Check)
+        {
+            var mismatches = files
+                .Where(file => !File.Exists(Path.Combine(output, file.Key)) || File.ReadAllText(Path.Combine(output, file.Key)) != file.Value)
+                .Select(file => file.Key)
+                .ToList();
+
+            if (mismatches.Count == 0)
+                return 0;
+
+            Console.Error.WriteLine("Generated documentation is out of date:");
+            foreach (var mismatch in mismatches)
+                Console.Error.WriteLine($"  {Path.Combine(output, mismatch)}");
+            return 1;
+        }
+
+        Directory.CreateDirectory(output);
+        foreach (var file in files)
+            File.WriteAllText(Path.Combine(output, file.Key), file.Value);
+
+        return 0;
+    }
+
+    static string GenerateCliHelpMarkdown()
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("# PTZControlConsole CLI Help");
+        builder.AppendLine();
+        builder.AppendLine("This file is generated by `PTZControlConsole docs --output docs/generated`.");
+        builder.AppendLine();
+        AppendMainHelpBlock(builder);
+        foreach (var verb in PublicVerbTypes.Select(GetVerbName))
+            AppendHelpBlock(builder, verb, new[] { verb, "--help" });
+        return builder.ToString();
+    }
+
+    static string GetVerbName(Type verbType) =>
+        verbType.GetCustomAttribute<VerbAttribute>()?.Name
+        ?? throw new InvalidOperationException($"Missing VerbAttribute on {verbType.FullName}.");
+
+    static void AppendMainHelpBlock(StringBuilder builder)
+    {
+        var help = new HelpText
+        {
+            Heading = GetVersionLine(),
+            Copyright = ""
+        };
+        help.AddVerbs(PublicVerbTypes);
+
+        builder.AppendLine("## Main help");
+        builder.AppendLine();
+        builder.AppendLine("```text");
+        builder.Append(RenderMainHelp());
+        builder.AppendLine("```");
+        builder.AppendLine();
+    }
+
+    static string RenderMainHelp()
+    {
+        var help = new HelpText
+        {
+            Heading = GetVersionLine(),
+            Copyright = ""
+        };
+        help.AddVerbs(PublicVerbTypes);
+        return help.ToString();
+    }
+
+    static string GetVersionLine()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        return $"PTZControlConsole {informationalVersion ?? assembly.GetName().Version?.ToString() ?? "unknown"}";
+    }
+
+    static void AppendHelpBlock(StringBuilder builder, string title, string[] args)
+    {
+        builder.AppendLine($"## {title}");
+        builder.AppendLine();
+        builder.AppendLine("```text");
+        builder.Append(CaptureParserHelp(args));
+        builder.AppendLine("```");
+        builder.AppendLine();
+    }
+
+    static string CaptureParserHelp(string[] args)
+    {
+        var result = DocumentationParser.ParseArguments(args, AllVerbTypes);
+        var text = HelpText.AutoBuild(result, help =>
+        {
+            help.Heading = GetVersionLine();
+            help.Copyright = "";
+            return HelpText.DefaultParsingErrorsHandler(result, help);
+        }, example => example).ToString();
+        return text;
+    }
+
+    static string GenerateExampleOutputMarkdown()
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("# PTZControlConsole Example Output");
+        builder.AppendLine();
+        builder.AppendLine("This file is generated by `PTZControlConsole docs --output docs/generated`.");
+        builder.AppendLine("The examples use stable sample data and do not query local camera hardware.");
+        builder.AppendLine();
+        AppendExampleBlock(builder, "list-devices", GenerateSampleListDevices());
+        AppendExampleBlock(builder, "cam-device-info", GenerateSampleCamDeviceInfo());
+        AppendExampleBlock(builder, "list-presets", GenerateSampleListPresets());
+        AppendExampleBlock(builder, "config --export", GenerateSampleConfigExport());
+        return builder.ToString();
+    }
+
+    static void AppendExampleBlock(StringBuilder builder, string title, string content)
+    {
+        builder.AppendLine($"## {title}");
+        builder.AppendLine();
+        builder.AppendLine("```text");
+        builder.Append(content);
+        builder.AppendLine("```");
+        builder.AppendLine();
+    }
+
+    static string GenerateSampleListDevices() =>
+        "PTZ Pro 2\t@device:pnp:\\\\?\\usb#vid_046d&pid_085f&mi_00#sample\\global" + Environment.NewLine +
+        "Logitech HD Webcam C525\t@device:pnp:\\\\?\\usb#vid_046d&pid_0826&mi_02#sample\\global" + Environment.NewLine;
+
+    static string GenerateSampleCamDeviceInfo() =>
+        """
+        Camera:
+          Device Name: PTZ Pro 2
+          Device Path: @device:pnp:\\?\usb#vid_046d&pid_085f&mi_00#sample\global
+          PTZControl Slot: 1
+          Camera Slot Alias: Main camera
+
+        Zoom:
+          Percent range: 0..100
+          Raw min: 0
+          Raw max: 500
+          Raw default: 0
+          Raw step size: 1
+          Raw current: 120
+
+        Move X axis:
+          Percent range: 0..100
+          Raw min: -36000
+          Raw max: 36000
+          Raw default: 0
+          Raw step size: 1
+          Raw current: 0
+
+        Move Y axis:
+          Percent range: 0..100
+          Raw min: -36000
+          Raw max: 36000
+          Raw default: 0
+          Raw step size: 1
+          Raw current: 0
+
+        Available restore targets:
+          Home: zoom, move, all
+          Default: zoom, move, move-x, move-y, all
+
+        Presets:
+          Restore range: 1..8
+          Save range: 1..8
+        
+        """;
+
+    static string GenerateSampleListPresets() =>
+        """
+        Camera Device Name: PTZ Pro 2
+        PTZControl app camera slot: 1
+        Camera Slot Alias: Main camera
+        Preset storage: camera Logitech extension unit
+        * Preset 1: name=Speaker; values=not readable
+        * Preset 2: name=Stage; values=not readable
+        * Preset 3: name=(none); values=not readable
+        * Preset 4: name=(none); values=not readable
+        * Preset 5: name=(none); values=not readable
+        * Preset 6: name=(none); values=not readable
+        * Preset 7: name=(none); values=not readable
+        * Preset 8: name=(none); values=not readable
+        
+        """;
+
+    static string GenerateSampleConfigExport() =>
+        """
+        {
+          "cameras": [
+            {
+              "slot": 1,
+              "friendlyName": "Main camera",
+              "lastDeviceName": "PTZ Pro 2",
+              "lastDevicePath": "@device:pnp:\\\\?\\usb#vid_046d&pid_085f&mi_00#sample\\global",
+              "presetNames": {
+                "1": "Speaker",
+                "2": "Stage"
+              }
+            }
+          ]
+        }
+        
+        """;
 
     static int GetPresetName(Options options, int preset)
     {
@@ -376,14 +615,14 @@ class Program
     {
         var pan = options.X is null ? (int?)null : ConvertAbsoluteValue(camera, UvcCameraProperty.Pan, options.X.Value, mode);
         var tilt = options.Y is null ? (int?)null : ConvertAbsoluteValue(camera, UvcCameraProperty.Tilt, options.Y.Value, mode);
-        if (pan is null && tilt is null) throw new ArgumentException("move-absolute requires --x and/or --y.");
+        if (pan is null && tilt is null) throw new ArgumentException("move-absolute requires -x/--pan and/or -y/--tilt.");
         CameraBackend.SetPanTiltZoom(camera, pan, tilt);
         return Ok();
     }
 
     static int MoveRelative(string camera, Options options, ValueMode mode)
     {
-        if (options.X is null && options.Y is null) throw new ArgumentException("move-relative requires --x and/or --y.");
+        if (options.X is null && options.Y is null) throw new ArgumentException("move-relative requires -x/--pan and/or -y/--tilt.");
         if (mode == ValueMode.Percent)
         {
             CameraBackend.MoveRelativePanTilt(camera, options.X, options.Y);
@@ -816,166 +1055,176 @@ class Program
 
     abstract class CameraSelectionOptions : ICameraSelectionOptions
     {
-        [Option("camera", HelpText = "Camera device name fragment.")]
+        [Option('c', "camera", HelpText = "Camera device name fragment.")]
         public string? Camera { get; set; }
 
-        [Option("device-path", HelpText = "Concrete camera device path.")]
+        [Option('d', "device-path", HelpText = "Concrete camera device path.")]
         public string? DevicePath { get; set; }
 
-        [Option("slot", HelpText = "PTZControl camera slot 1..3.")]
+        [Option('s', "slot", HelpText = "PTZControl camera slot 1..3.")]
         public int? Slot { get; set; }
     }
 
-    [Verb("list-devices")]
+    [Verb("list-devices", HelpText = "List available camera devices.")]
     sealed class ListDevicesOptions
     {
     }
 
-    [Verb("cam-device-info")]
+    [Verb("cam-device-info", HelpText = "Show camera device information and supported raw ranges.")]
     sealed class CamDeviceInfoOptions : CameraSelectionOptions
     {
     }
 
-    [Verb("list-presets")]
+    [Verb("list-presets", HelpText = "List preset names and preset storage information.")]
     sealed class ListPresetsOptions : CameraSelectionOptions
     {
     }
 
     abstract class PresetOptions : CameraSelectionOptions
     {
-        [Value(0, Required = true, MetaName = "preset")]
+        [Value(0, Required = true, MetaName = "preset", HelpText = "Preset number 1..8.")]
         public int Preset { get; set; }
     }
 
-    [Verb("get-preset-name")]
+    [Verb("get-preset-name", HelpText = "Print the friendly name of one preset.")]
     sealed class GetPresetNameOptions : PresetOptions
     {
     }
 
-    [Verb("set-preset-name")]
+    [Verb("set-preset-name", HelpText = "Store the friendly name of one preset.")]
     sealed class SetPresetNameOptions : PresetOptions, IFriendlyNameOptions
     {
-        [Option("friendlyname", Required = true)]
+        [Option('n', "friendlyname", Required = true, HelpText = "Friendly display name to store.")]
         public string? FriendlyName { get; set; }
     }
 
-    [Verb("clear-preset-name")]
+    [Verb("clear-preset-name", HelpText = "Clear the friendly name of one preset.")]
     sealed class ClearPresetNameOptions : PresetOptions
     {
     }
 
-    [Verb("get-camera-name")]
+    [Verb("get-camera-name", HelpText = "Print the friendly name of one camera slot.")]
     sealed class GetCameraNameOptions
     {
-        [Option("slot", Required = true)]
+        [Option('s', "slot", Required = true, HelpText = "PTZControl camera slot 1..3.")]
         public int? Slot { get; set; }
     }
 
-    [Verb("set-camera-name")]
+    [Verb("set-camera-name", HelpText = "Store the friendly name of one camera slot.")]
     sealed class SetCameraNameOptions : IFriendlyNameOptions
     {
-        [Option("slot", Required = true)]
+        [Option('s', "slot", Required = true, HelpText = "PTZControl camera slot 1..3.")]
         public int? Slot { get; set; }
 
-        [Option("friendlyname", Required = true)]
+        [Option('n', "friendlyname", Required = true, HelpText = "Friendly display name to store.")]
         public string? FriendlyName { get; set; }
     }
 
-    [Verb("clear-camera-name")]
+    [Verb("clear-camera-name", HelpText = "Clear the friendly name of one camera slot.")]
     sealed class ClearCameraNameOptions
     {
-        [Option("slot", Required = true)]
+        [Option('s', "slot", Required = true, HelpText = "PTZControl camera slot 1..3.")]
         public int? Slot { get; set; }
     }
 
-    [Verb("swap-preset-names")]
+    [Verb("swap-preset-names", HelpText = "Swap preset friendly names between two camera slots.")]
     sealed class SwapPresetNamesOptions
     {
-        [Option("slot-a", Required = true)]
+        [Option("slot-a", Required = true, HelpText = "First PTZControl camera slot 1..3.")]
         public int? SlotA { get; set; }
 
-        [Option("slot-b", Required = true)]
+        [Option("slot-b", Required = true, HelpText = "Second PTZControl camera slot 1..3.")]
         public int? SlotB { get; set; }
     }
 
-    [Verb("config")]
+    [Verb("config", HelpText = "Export or import preset and camera friendly-name metadata.")]
     sealed class ConfigOptions : IConfigTransportOptions
     {
-        [Option("export", SetName = "export")]
+        [Option("export", SetName = "export", HelpText = "Export metadata JSON to stdout or json-path.")]
         public bool ExportConfig { get; set; }
 
-        [Value(0, Required = false, MetaName = "json-path")]
+        [Value(0, Required = false, MetaName = "json-path", HelpText = "JSON file path for config export.")]
         public string? ExportConfigPath { get; set; }
 
-        [Option("import", SetName = "import")]
+        [Option("import", SetName = "import", HelpText = "Import metadata JSON from a file path.")]
         public string? ImportConfigPath { get; set; }
     }
 
     abstract class TargetCameraOptions : CameraSelectionOptions
     {
-        [Option("target", Required = true)]
+        [Option('t', "target", Required = true, HelpText = "Restore target: zoom, move, move-x, move-y, or all. Home supports zoom, move, or all.")]
         public string TargetName { get; set; } = "";
     }
 
-    [Verb("restore-home")]
+    [Verb("restore-home", HelpText = "Restore the Logitech home position.")]
     sealed class RestoreHomeOptions : TargetCameraOptions
     {
     }
 
-    [Verb("restore-default")]
+    [Verb("restore-default", HelpText = "Restore driver default values.")]
     sealed class RestoreDefaultOptions : TargetCameraOptions
     {
     }
 
-    [Verb("restore-preset")]
+    [Verb("restore-preset", HelpText = "Restore a camera preset position.")]
     sealed class RestorePresetOptions : PresetOptions
     {
     }
 
-    [Verb("save-preset")]
+    [Verb("save-preset", HelpText = "Save the current camera position as a preset.")]
     sealed class SavePresetOptions : PresetOptions, IFriendlyNameOptions
     {
-        [Option("friendlyname")]
+        [Option('n', "friendlyname", HelpText = "Friendly display name to store separately with set-preset-name.")]
         public string? FriendlyName { get; set; }
     }
 
     abstract class ModeCameraOptions : CameraSelectionOptions
     {
-        [Option("mode", Required = true)]
+        [Option('m', "mode", Required = true, HelpText = "Value mode: percent or raw.")]
         public string ModeName { get; set; } = "";
     }
 
-    [Verb("zoom-absolute")]
+    [Verb("zoom-absolute", HelpText = "Set an absolute zoom value.")]
     sealed class ZoomAbsoluteOptions : ModeCameraOptions
     {
-        [Value(0, Required = true, MetaName = "value")]
+        [Value(0, Required = true, MetaName = "value", HelpText = "Absolute zoom value.")]
         public int Value { get; set; }
     }
 
-    [Verb("zoom-relative")]
+    [Verb("zoom-relative", HelpText = "Change zoom by a relative delta.")]
     sealed class ZoomRelativeOptions : ModeCameraOptions
     {
-        [Value(0, Required = true, MetaName = "value-delta")]
+        [Value(0, Required = true, MetaName = "value-delta", HelpText = "Relative zoom delta.")]
         public int ValueDelta { get; set; }
     }
 
     abstract class MoveOptions : ModeCameraOptions, IMoveOptions
     {
-        [Option("x")]
+        [Option('x', "pan", HelpText = "Pan axis value.")]
         public int? X { get; set; }
 
-        [Option("y")]
+        [Option('y', "tilt", HelpText = "Tilt axis value.")]
         public int? Y { get; set; }
     }
 
-    [Verb("move-absolute")]
+    [Verb("move-absolute", HelpText = "Set absolute pan and/or tilt values.")]
     sealed class MoveAbsoluteOptions : MoveOptions
     {
     }
 
-    [Verb("move-relative")]
+    [Verb("move-relative", HelpText = "Change pan and/or tilt by relative deltas.")]
     sealed class MoveRelativeOptions : MoveOptions
     {
+    }
+
+    [Verb("docs", Hidden = true)]
+    sealed class DocsOptions
+    {
+        [Option("output", HelpText = "Generated documentation output directory.")]
+        public string? OutputPath { get; set; }
+
+        [Option("check", HelpText = "Check whether generated documentation is up to date.")]
+        public bool Check { get; set; }
     }
 
     static Options ToOptions(object source)

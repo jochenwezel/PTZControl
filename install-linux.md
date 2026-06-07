@@ -54,17 +54,18 @@ Test standard V4L2 camera controls:
 ```bash
 ./PTZControlConsole zoom-relative 10 --mode percent --camera "PTZ"
 ./PTZControlConsole zoom-relative -10 --mode percent --camera "PTZ"
-./PTZControlConsole move-relative --mode percent --x 10 --camera "PTZ"
-./PTZControlConsole move-relative --mode percent --x -10 --camera "PTZ"
-./PTZControlConsole move-relative --mode percent --y 10 --camera "PTZ"
-./PTZControlConsole move-relative --mode percent --y -10 --camera "PTZ"
+./PTZControlConsole move-relative --mode percent --pan 10 --camera "PTZ"
+./PTZControlConsole move-relative --mode percent --pan -10 --camera "PTZ"
+./PTZControlConsole move-relative --mode percent --tilt 10 --camera "PTZ"
+./PTZControlConsole move-relative --mode percent --tilt -10 --camera "PTZ"
 ./PTZControlConsole zoom-absolute 0 --mode percent --camera "PTZ"
 ./PTZControlConsole zoom-absolute 50 --mode percent --camera "PTZ"
 ./PTZControlConsole zoom-absolute 100 --mode percent --camera "PTZ"
 ```
 
-`--camera` matches a device name fragment from `list-devices`. `--device-path`
-selects a concrete device path such as `/dev/video0`.
+`-c`/`--camera` matches a device name fragment from `list-devices`.
+`-d`/`--device-path` selects a concrete device path such as `/dev/video0`.
+`-x`/`--pan` controls pan. `-y`/`--tilt` controls tilt.
 
 ## Metadata Configuration
 

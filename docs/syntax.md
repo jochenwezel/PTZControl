@@ -8,8 +8,8 @@ Companion integration.
 
 ```text
 PTZControlConsole list-devices
-PTZControlConsole cam-device-info [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
-PTZControlConsole list-presets [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
+PTZControlConsole cam-device-info [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole list-presets [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
 ```
 
 Example `list-devices` output:
@@ -26,7 +26,7 @@ Camera:
   Device Name: PTZ Pro 2
   Device Path: @device:pnp:\\?\usb#vid_046d&pid_085f&mi_00#...
   PTZControl Slot: 1
-  Camera Slot Alias: Saal links
+  Camera Slot Alias: Main camera
 
 Zoom:
   Percent range: 0..100
@@ -66,22 +66,22 @@ Example `list-presets` output:
 ```text
 Camera Device Name: PTZ Pro 2
 PTZControl app camera slot: 1
-Camera Slot Alias: Saal links
+Camera Slot Alias: Main camera
 Preset storage: camera Logitech extension unit
-* Preset 1: name=Predigt; values=not readable
-* Preset 2: name=Musik; values=not readable
+* Preset 1: name=Speaker; values=not readable
+* Preset 2: name=Stage; values=not readable
 * Preset 3: name=(none); values=not readable
 ```
 
 ## Preset and camera friendly names
 
 ```text
-PTZControlConsole get-preset-name 1..8 [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
-PTZControlConsole set-preset-name 1..8 --friendlyname "Title" [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
-PTZControlConsole clear-preset-name 1..8 [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
-PTZControlConsole get-camera-name --slot 1..3
-PTZControlConsole set-camera-name --friendlyname "Title" --slot 1..3
-PTZControlConsole clear-camera-name --slot 1..3
+PTZControlConsole get-preset-name 1..8 [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole set-preset-name 1..8 -n|--friendlyname "Title" [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole clear-preset-name 1..8 [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole get-camera-name -s|--slot 1..3
+PTZControlConsole set-camera-name -n|--friendlyname "Title" -s|--slot 1..3
+PTZControlConsole clear-camera-name -s|--slot 1..3
 PTZControlConsole swap-preset-names --slot-a 1..3 --slot-b 1..3
 ```
 
@@ -103,17 +103,17 @@ compatibility. Linux and macOS use JSON metadata files.
 ## Restore commands
 
 ```text
-PTZControlConsole restore-home --target zoom|move|all [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
-PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
-PTZControlConsole restore-preset 1..8 [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
-PTZControlConsole save-preset 1..8 [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3] [--friendlyname "Title"]
+PTZControlConsole restore-home -t|--target zoom|move|all [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole restore-default -t|--target zoom|move|move-x|move-y|all [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole restore-preset 1..8 [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole save-preset 1..8 [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3] [-n|--friendlyname "Title"]
 ```
 
 ## Zoom commands
 
 ```text
-PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
-PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
+PTZControlConsole zoom-absolute VALUE -m|--mode percent|raw [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole zoom-relative VALUE_DELTA -m|--mode percent|raw [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
 ```
 
 `--mode percent` uses values relative to the CLI percent range. `--mode raw`
@@ -122,21 +122,21 @@ uses device/driver raw values.
 ## Move commands
 
 ```text
-PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
-PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_DELTA] [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
+PTZControlConsole move-absolute -m|--mode percent|raw [-x|--pan VALUE] [-y|--tilt VALUE] [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole move-relative -m|--mode percent|raw [-x|--pan VALUE_DELTA] [-y|--tilt VALUE_DELTA] [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
 ```
 
-`--x` controls pan. `--y` controls tilt.
+`-x`/`--pan` controls pan. `-y`/`--tilt` controls tilt.
 
 ## Selection options
 
 ```text
---camera "NamePart"
---device-path "DevicePath"
---slot 1..3
+-c, --camera "NamePart"
+-d, --device-path "DevicePath"
+-s, --slot 1..3
 ```
 
-Use only one selector at a time. `--camera` selects by camera device name
-fragment. `--device-path` selects by a concrete device path. `--slot` selects
-the currently enumerated PTZControl camera slot 1, 2, or 3 and is also used for
-friendly names.
+Use only one selector at a time. `-c`/`--camera` selects by camera device name
+fragment. `-d`/`--device-path` selects by a concrete device path.
+`-s`/`--slot` selects the currently enumerated PTZControl camera slot 1, 2, or
+3 and is also used for friendly names.
