@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using PTZControl.Uvc;
 
 namespace PTZControlConsole;
@@ -10,6 +11,8 @@ namespace PTZControlConsole;
 internal interface ICameraBackend
 {
     IReadOnlyList<CameraInfo> Enumerate();
+    string GetDirectShowCameraName(string devicePath);
+    void SetDirectShowCameraName(string devicePath, string friendlyName);
     (int min, int max, int step, int def) GetRange(string camera, CameraProperty property);
     int GetValue(string camera, CameraProperty property);
     void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null);
@@ -37,9 +40,50 @@ internal static class CameraBackendFactory
     }
 }
 
+[SupportedOSPlatform("windows")]
 internal sealed class WindowsUvcCameraBackend : ICameraBackend
 {
     public IReadOnlyList<CameraInfo> Enumerate() => UvcCamera.Enumerate();
+
+    public string GetDirectShowCameraName(string devicePath)
+    {
+        if (string.IsNullOrWhiteSpace(devicePath))
+            throw new ArgumentException("Device path is required.", nameof(devicePath));
+
+        using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(BuildDirectShowCameraRegistryPath(devicePath));
+        return key?.GetValue("FriendlyName") as string
+            ?? throw new InvalidOperationException("DirectShow FriendlyName was not found for the selected camera.");
+    }
+
+    public void SetDirectShowCameraName(string devicePath, string friendlyName)
+    {
+        if (string.IsNullOrWhiteSpace(devicePath))
+            throw new ArgumentException("Device path is required.", nameof(devicePath));
+        if (string.IsNullOrWhiteSpace(friendlyName))
+            throw new ArgumentException("Friendly name is required.", nameof(friendlyName));
+
+        using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(BuildDirectShowCameraRegistryPath(devicePath), writable: true)
+            ?? throw new InvalidOperationException("DirectShow camera registry key was not found for the selected camera.");
+        key.SetValue("FriendlyName", friendlyName, Microsoft.Win32.RegistryValueKind.String);
+    }
+
+    private static string BuildDirectShowCameraRegistryPath(string devicePath)
+    {
+        var path = devicePath.Trim();
+        const string monikerPrefix = "@device:pnp:";
+        if (path.StartsWith(monikerPrefix, StringComparison.OrdinalIgnoreCase))
+            path = path[monikerPrefix.Length..];
+
+        path = path.ToLowerInvariant()
+            .Replace(@"\\?\usb", @"\##?#USB", StringComparison.OrdinalIgnoreCase)
+            .Replace(@"\global", @"\#GLOBAL\Device Parameters", StringComparison.OrdinalIgnoreCase)
+            .Replace(@"\{", @"\#{", StringComparison.OrdinalIgnoreCase);
+
+        if (!path.EndsWith(@"\device parameters", StringComparison.OrdinalIgnoreCase))
+            path += @"\Device Parameters";
+
+        return @"SYSTEM\CurrentControlSet\Control\DeviceClasses\{65E8773D-8F56-11D0-A3B9-00A0C9223196}" + path;
+    }
 
     public (int min, int max, int step, int def) GetRange(string camera, CameraProperty property) =>
         UvcCamera.GetRange(camera, property);
@@ -93,6 +137,12 @@ internal sealed class LinuxPreviewCameraBackend : ICameraBackend
             })
             .ToList();
     }
+
+    public string GetDirectShowCameraName(string devicePath) =>
+        throw new NotSupportedException("DirectShow camera names are only available on Windows.");
+
+    public void SetDirectShowCameraName(string devicePath, string friendlyName) =>
+        throw new NotSupportedException("DirectShow camera rename is only available on Windows.");
 
     public (int min, int max, int step, int def) GetRange(string camera, CameraProperty property)
     {
@@ -277,6 +327,12 @@ internal sealed class LinuxPreviewCameraBackend : ICameraBackend
 internal sealed class UnsupportedCameraBackend(string message) : ICameraBackend
 {
     public IReadOnlyList<CameraInfo> Enumerate() => throw new NotSupportedException(message);
+
+    public string GetDirectShowCameraName(string devicePath) =>
+        throw new NotSupportedException("DirectShow camera names are only available on Windows.");
+
+    public void SetDirectShowCameraName(string devicePath, string friendlyName) =>
+        throw new NotSupportedException("DirectShow camera rename is only available on Windows.");
 
     public (int min, int max, int step, int def) GetRange(string camera, CameraProperty property) =>
         throw new NotSupportedException(message);

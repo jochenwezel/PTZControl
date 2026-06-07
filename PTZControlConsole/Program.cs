@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Security;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
@@ -25,6 +26,8 @@ class Program
         typeof(GetCameraNameOptions),
         typeof(SetCameraNameOptions),
         typeof(ClearCameraNameOptions),
+        typeof(GetDirectShowCameraNameOptions),
+        typeof(SetDirectShowCameraNameOptions),
         typeof(SwapPresetNamesOptions),
         typeof(ConfigOptions),
         typeof(RestoreHomeOptions),
@@ -116,6 +119,8 @@ class Program
             GetCameraNameOptions options => GetCameraName(ToOptions(options)),
             SetCameraNameOptions options => SetCameraName(ToOptions(options)),
             ClearCameraNameOptions options => ClearCameraName(ToOptions(options)),
+            GetDirectShowCameraNameOptions options => GetDirectShowCameraName(ToOptions(options)),
+            SetDirectShowCameraNameOptions options => SetDirectShowCameraName(ToOptions(options), options.AcknowledgeWarning),
             SwapPresetNamesOptions options => SwapPresetNames(RequireSlot(options.SlotA, "--slot-a"), RequireSlot(options.SlotB, "--slot-b")),
             ConfigOptions options => RunConfig(ToOptions(options)),
             RestoreHomeOptions options => RestoreHome(ResolveCamera(ToOptions(options)), ParseTarget(options.TargetName)),
@@ -425,6 +430,48 @@ class Program
         return Ok();
     }
 
+    static int GetDirectShowCameraName(Options options)
+    {
+        var camera = ResolveSingleCameraInfo(options, requireExplicitSelector: true);
+        Console.WriteLine(CameraBackend.GetDirectShowCameraName(camera.MonikerString));
+        return 0;
+    }
+
+    static int SetDirectShowCameraName(Options options, bool acknowledgeWarning)
+    {
+        if (string.IsNullOrWhiteSpace(options.FriendlyName))
+            throw new ArgumentException("set-directshow-camera-name requires --friendlyname.");
+
+        var camera = ResolveSingleCameraInfo(options, requireExplicitSelector: true);
+        if (!acknowledgeWarning)
+            RequireDirectShowRenameConfirmation();
+
+        try
+        {
+            CameraBackend.SetDirectShowCameraName(camera.MonikerString, options.FriendlyName);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new InvalidOperationException("Administrator rights are required to set the DirectShow camera name. Start the console as administrator or use an elevated shell.", ex);
+        }
+        catch (SecurityException ex)
+        {
+            throw new InvalidOperationException("Administrator rights are required to set the DirectShow camera name. Start the console as administrator or use an elevated shell.", ex);
+        }
+
+        return Ok();
+    }
+
+    static void RequireDirectShowRenameConfirmation()
+    {
+        Console.Error.WriteLine("Warning:");
+        Console.Error.WriteLine(DirectShowRenameWarningText);
+        Console.Error.Write("Type YES to continue: ");
+        var answer = Console.ReadLine();
+        if (!string.Equals(answer, "YES", StringComparison.Ordinal))
+            throw new OperationCanceledException("DirectShow camera rename was not confirmed.");
+    }
+
     static int RunConfig(Options options)
     {
         if (options.ExportConfig && !string.IsNullOrWhiteSpace(options.ImportConfigPath))
@@ -722,6 +769,61 @@ class Program
         }
 
         return (null, null);
+    }
+
+    static CameraInfo ResolveSingleCameraInfo(Options options, bool requireExplicitSelector)
+    {
+        var selectorCount =
+            (!string.IsNullOrWhiteSpace(options.Camera) ? 1 : 0) +
+            (!string.IsNullOrWhiteSpace(options.DevicePath) ? 1 : 0) +
+            (options.Slot.HasValue ? 1 : 0);
+        if (selectorCount > 1)
+            throw new ArgumentException("Use only one camera selector: --camera, --device-path, or --slot.");
+        if (requireExplicitSelector && selectorCount == 0)
+            throw new ArgumentException("Use --camera, --device-path, or --slot to select the camera.");
+
+        var cameras = CameraBackend.Enumerate();
+        if (cameras.Count == 0)
+            throw new InvalidOperationException("No camera found.");
+
+        if (options.Slot.HasValue)
+        {
+            var slot = RequireSlot(options.Slot, "--slot");
+            if (cameras.Count < slot)
+                throw new InvalidOperationException($"Camera slot {slot} is not available. Found {cameras.Count} camera(s).");
+            return RequireDevicePath(cameras[slot - 1]);
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.DevicePath))
+        {
+            var match = cameras
+                .Where(camera => !string.IsNullOrWhiteSpace(camera.MonikerString) &&
+                    string.Equals(camera.MonikerString, options.DevicePath, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (match.Count == 1)
+                return RequireDevicePath(match[0]);
+
+            return new CameraInfo { Name = options.DevicePath, MonikerString = options.DevicePath };
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Camera))
+        {
+            var matches = cameras.Where(camera => CameraMatches(camera, options.Camera)).ToList();
+            if (matches.Count == 0)
+                throw new InvalidOperationException($"Camera '{options.Camera}' not found.");
+            if (matches.Count > 1)
+                throw new InvalidOperationException($"Camera selector '{options.Camera}' is ambiguous. Use --device-path instead.");
+            return RequireDevicePath(matches[0]);
+        }
+
+        return RequireDevicePath(cameras[0]);
+    }
+
+    static CameraInfo RequireDevicePath(CameraInfo camera)
+    {
+        if (string.IsNullOrWhiteSpace(camera.MonikerString))
+            throw new InvalidOperationException($"Camera '{camera.Name}' does not provide a device path.");
+        return camera;
     }
 
     static bool CameraMatches(CameraInfo camera, string query) =>
@@ -1160,6 +1262,21 @@ class Program
         public int? Slot { get; set; }
     }
 
+    [Verb("get-directshow-camera-name", HelpText = "Print the Windows DirectShow camera name.")]
+    sealed class GetDirectShowCameraNameOptions : CameraSelectionOptions
+    {
+    }
+
+    [Verb("set-directshow-camera-name", HelpText = "Set the Windows DirectShow camera name.")]
+    sealed class SetDirectShowCameraNameOptions : CameraSelectionOptions, IFriendlyNameOptions
+    {
+        [Option('n', "friendlyname", Required = true, HelpText = "DirectShow friendly name to write.")]
+        public string? FriendlyName { get; set; }
+
+        [Option("acknowledge-warning", HelpText = "Skip the interactive registry risk confirmation.")]
+        public bool AcknowledgeWarning { get; set; }
+    }
+
     [Verb("swap-preset-names", HelpText = "Swap preset friendly names between two camera slots.")]
     sealed class SwapPresetNamesOptions
     {
@@ -1316,4 +1433,7 @@ class Program
         public int? X { get; set; }
         public int? Y { get; set; }
     }
+
+    private const string DirectShowRenameWarningText =
+        "This feature is provided \"as is\" without any warranty. The authors are not responsible for any damage to the system or the cameras. Use this feature at your own risk. It is recommended to create a backup of the registry path HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\DeviceClasses\\{65e8773d-8f56-11d0-a3b9-00a0c9223196} before using this feature, especially if you are not sure what you are doing.";
 }

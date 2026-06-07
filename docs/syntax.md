@@ -84,6 +84,21 @@ PTZControlConsole swap-preset-names --slot-a 1..3 --slot-b 1..3
 Friendly names are metadata used by PTZControl and automation tools. They do
 not rename the physical camera device.
 
+## Windows DirectShow camera names
+
+```text
+PTZControlConsole get-directshow-camera-name [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole set-directshow-camera-name -n|--friendlyname "DirectShow Name" [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3] [--acknowledge-warning]
+```
+
+These commands are Windows-only. They read or write the DirectShow
+`FriendlyName` registry value and do not rename the physical USB device or the
+Windows Device Manager device name.
+
+`set-directshow-camera-name` shows an interactive registry risk confirmation
+before writing. Use `--acknowledge-warning` only for non-interactive scripts
+that already handle this risk intentionally.
+
 ## Metadata config transport
 
 ```text
