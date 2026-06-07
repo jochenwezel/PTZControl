@@ -216,7 +216,6 @@ fi
 for i in "${!DEVICE_NAMES[@]}"; do
   device_selector=(--device-path "${DEVICE_PATHS[$i]}")
   run_logged_command "Collect camera device info and supported ranges for ${DEVICE_NAMES[$i]}" cam-device-info "${device_selector[@]}"
-  run_logged_command "Collect preset names and storage details for ${DEVICE_NAMES[$i]}" list-presets "${device_selector[@]}"
 done
 
 run_preparation_command "Move zoom away from absolute percent value 0" zoom-absolute 100 --mode percent "${selector[@]}"

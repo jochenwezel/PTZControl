@@ -103,8 +103,8 @@ Import a metadata configuration file:
 
 The release package includes `scripts/test-console-camera-linux.sh`. It runs a
 guided command sequence, records exit codes, stdout, stderr, `cam-device-info`,
-`list-devices`, `list-presets`, and asks the tester to confirm the visible
-camera result after each action.
+and `list-devices`, and asks the tester to confirm the visible camera result
+after each action.
 
 Example:
 

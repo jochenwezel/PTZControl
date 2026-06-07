@@ -9,7 +9,6 @@ PTZControlConsole 1.0.0.0
 
   list-devices         List available camera devices.
   cam-device-info      Show camera device information and supported raw ranges.
-  list-presets         List preset names and preset storage information.
   get-preset-name      Print the friendly name of one preset.
   set-preset-name      Store the friendly name of one preset.
   clear-preset-name    Clear the friendly name of one preset.
@@ -43,23 +42,6 @@ PTZControlConsole 1.0.0.0
 ```
 
 ## cam-device-info
-
-```text
-PTZControlConsole 1.0.0.0
-
-  -c, --camera         Camera device name fragment.
-
-  -d, --device-path    Concrete camera device path.
-
-  -s, --slot           PTZControl camera slot 1..3.
-
-  --help               Display this help screen.
-
-  --version            Display version information.
-
-```
-
-## list-presets
 
 ```text
 PTZControlConsole 1.0.0.0

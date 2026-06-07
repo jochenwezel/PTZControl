@@ -9,7 +9,6 @@ Companion integration.
 ```text
 PTZControlConsole list-devices
 PTZControlConsole cam-device-info [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
-PTZControlConsole list-presets [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
 ```
 
 Example `list-devices` output:
@@ -68,18 +67,6 @@ Presets:
   Preset 6: name=(none); values=not readable
   Preset 7: name=(none); values=not readable
   Preset 8: name=(none); values=not readable
-```
-
-Example `list-presets` output:
-
-```text
-Camera Device Name: PTZ Pro 2
-PTZControl app camera slot: 1
-Camera Slot Alias: Main camera
-Preset storage: camera Logitech extension unit
-Preset 1: name=Speaker; values=not readable
-Preset 2: name=Stage; values=not readable
-Preset 3: name=(none); values=not readable
 ```
 
 ## Preset and camera friendly names

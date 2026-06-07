@@ -19,7 +19,6 @@ class Program
     {
         typeof(ListDevicesOptions),
         typeof(CamDeviceInfoOptions),
-        typeof(ListPresetsOptions),
         typeof(GetPresetNameOptions),
         typeof(SetPresetNameOptions),
         typeof(ClearPresetNameOptions),
@@ -110,7 +109,6 @@ class Program
         {
             ListDevicesOptions => ListDevices(),
             CamDeviceInfoOptions options => PrintCameraDeviceInfo(ResolveCamera(ToOptions(options))),
-            ListPresetsOptions options => ListPresets(ResolveCamera(ToOptions(options))),
             GetPresetNameOptions options => GetPresetName(ToOptions(options), ParsePreset(options.Preset)),
             SetPresetNameOptions options => SetPresetName(ToOptions(options), ParsePreset(options.Preset)),
             ClearPresetNameOptions options => ClearPresetName(ToOptions(options), ParsePreset(options.Preset)),
@@ -289,7 +287,6 @@ class Program
         builder.AppendLine();
         AppendExampleBlock(builder, "list-devices", GenerateSampleListDevices());
         AppendExampleBlock(builder, "cam-device-info", GenerateSampleCamDeviceInfo());
-        AppendExampleBlock(builder, "list-presets", GenerateSampleListPresets());
         AppendExampleBlock(builder, "config --export", GenerateSampleConfigExport());
         return builder.ToString();
     }
@@ -356,23 +353,6 @@ class Program
           Preset 6: name=(none); values=not readable
           Preset 7: name=(none); values=not readable
           Preset 8: name=(none); values=not readable
-        
-        """;
-
-    static string GenerateSampleListPresets() =>
-        """
-        Camera Device Name: PTZ Pro 2
-        PTZControl app camera slot: 1
-        Camera Slot Alias: Main camera
-        Preset storage: camera Logitech extension unit
-        Preset 1: name=Speaker; values=not readable
-        Preset 2: name=Stage; values=not readable
-        Preset 3: name=(none); values=not readable
-        Preset 4: name=(none); values=not readable
-        Preset 5: name=(none); values=not readable
-        Preset 6: name=(none); values=not readable
-        Preset 7: name=(none); values=not readable
-        Preset 8: name=(none); values=not readable
         
         """;
 
@@ -480,27 +460,6 @@ class Program
         }
 
         return Ok();
-    }
-
-    static int ListPresets(string camera)
-    {
-        var (cameraName, slotIndex) = ResolveCameraSlot(camera);
-        Console.WriteLine($"Camera Device Name: {cameraName}");
-        if (slotIndex is not null)
-        {
-            Console.WriteLine($"PTZControl app camera slot: {slotIndex.Value + 1}");
-            var alias = TryReadCameraSlotAlias(slotIndex.Value);
-            if (!string.IsNullOrWhiteSpace(alias))
-                Console.WriteLine($"Camera Slot Alias: {alias}");
-        }
-        else
-        {
-            Console.WriteLine("PTZControl app camera slot: not available");
-        }
-        Console.WriteLine("Preset storage: camera Logitech extension unit");
-        PrintPresetNames(slotIndex, "");
-
-        return 0;
     }
 
     static int PrintCameraDeviceInfo(string camera)
@@ -1093,11 +1052,6 @@ class Program
 
     [Verb("cam-device-info", HelpText = "Show camera device information and supported raw ranges.")]
     sealed class CamDeviceInfoOptions : CameraSelectionOptions
-    {
-    }
-
-    [Verb("list-presets", HelpText = "List preset names and preset storage information.")]
-    sealed class ListPresetsOptions : CameraSelectionOptions
     {
     }
 

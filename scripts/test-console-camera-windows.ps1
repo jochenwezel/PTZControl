@@ -175,7 +175,6 @@ else {
 foreach ($device in $devices) {
     $deviceSelector = @("--device-path", $device.DevicePath)
     Invoke-LoggedCommand "Collect camera device info and supported ranges for $($device.Name)" (@("cam-device-info") + $deviceSelector) | Out-Null
-    Invoke-LoggedCommand "Collect preset names and storage details for $($device.Name)" (@("list-presets") + $deviceSelector) | Out-Null
 }
 
 Invoke-PreparationCommand "Move zoom away from absolute percent value 0" (@("zoom-absolute", "100", "--mode", "percent") + $selector)
