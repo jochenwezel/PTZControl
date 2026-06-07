@@ -38,6 +38,11 @@ class Program
             case "list-devices":
                 EnsureNoOptions(ParseOptions(args[1..]), "list-devices");
                 return ListDevices();
+            case "cam-device-info":
+            {
+                var options = ParseOptions(args[1..]);
+                return PrintCameraDeviceInfo(ResolveCamera(options));
+            }
             case "restore-preset":
             {
                 var options = ParseOptions(args[2..]);
@@ -91,6 +96,7 @@ class Program
     {
         Console.WriteLine("Usage:");
         Console.WriteLine("  PTZControlConsole list-devices");
+        Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole restore-preset 0..8 [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\"] [--name \"Title\"]");
         Console.WriteLine("  PTZControlConsole zoom-absolute PERCENT [--camera \"NamePart\"]");
@@ -104,6 +110,39 @@ class Program
         foreach (var cam in CameraBackend.Enumerate())
             Console.WriteLine(string.IsNullOrWhiteSpace(cam.MonikerString) ? cam.Name : $"{cam.Name}\t{cam.MonikerString}");
         return 0;
+    }
+
+    static int PrintCameraDeviceInfo(string camera)
+    {
+        var match = CameraBackend.Enumerate()
+            .FirstOrDefault(cam => cam.Name.Contains(camera, StringComparison.OrdinalIgnoreCase));
+
+        Console.WriteLine($"Camera Device Name: {match?.Name ?? camera}");
+        if (!string.IsNullOrWhiteSpace(match?.MonikerString))
+            Console.WriteLine($"Camera Device Path: {match.MonikerString}");
+        Console.WriteLine("CLI absolute percent range: 0..100");
+        PrintPropertyInfo("Zoom", camera, UvcCameraProperty.Zoom);
+        PrintPropertyInfo("Move X axis", camera, UvcCameraProperty.Pan);
+        PrintPropertyInfo("Move Y axis", camera, UvcCameraProperty.Tilt);
+        Console.WriteLine("Preset range: restore 0..8, save 1..8");
+        return 0;
+    }
+
+    static void PrintPropertyInfo(string label, string camera, UvcCameraProperty property)
+    {
+        try
+        {
+            var range = CameraBackend.GetRange(camera, property);
+            var current = CameraBackend.GetValue(camera, property);
+            Console.WriteLine($"* {label} raw min/max: {range.min}/{range.max}");
+            Console.WriteLine($"  {label} raw current/default/step: {current}/{range.def}/{range.step}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"* {label}: not available ({GetErrorMessage(ex)})");
+            if (ex.InnerException is not null)
+                Console.WriteLine($"  Cause: {GetErrorMessage(ex.InnerException)}");
+        }
     }
 
     static void EnsureNoOptions(Options options, string command)
