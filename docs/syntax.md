@@ -119,10 +119,14 @@ uses device/driver raw values.
 
 ```text
 PTZControlConsole move-absolute -m|--mode percent|raw [-x|--pan VALUE] [-y|--tilt VALUE] [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
+PTZControlConsole move-seek -m|--mode percent|raw [-x|--pan VALUE] [-y|--tilt VALUE] [--tolerance VALUE] [--max-iterations COUNT] [--settle-ms MS] [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
 PTZControlConsole move-relative -m|--mode percent|raw [-x|--pan VALUE_DELTA] [-y|--tilt VALUE_DELTA] [-c|--camera "NamePart" | -d|--device-path "DevicePath" | -s|--slot 1..3]
 ```
 
 `-x`/`--pan` controls pan. `-y`/`--tilt` controls tilt.
+`move-seek` is experimental. It reads the current raw pan/tilt values, moves
+relatively toward the target, and re-checks progress until the target is reached
+or the iteration limit is hit.
 
 ## Selection options
 

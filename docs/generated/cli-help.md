@@ -25,6 +25,8 @@ PTZControlConsole 1.0.0.0
   zoom-absolute        Set an absolute zoom value.
   zoom-relative        Change zoom by a relative delta.
   move-absolute        Set absolute pan and/or tilt values.
+  move-seek            Experimentally seek absolute pan and/or tilt values using
+                       relative movement.
   move-relative        Change pan and/or tilt by relative deltas.
   help                 Display more information on a specific command.
   version              Display version information.
@@ -317,6 +319,37 @@ PTZControlConsole 1.0.0.0
 
 ```text
 PTZControlConsole 1.0.0.0
+
+  -x, --pan            Pan axis value.
+
+  -y, --tilt           Tilt axis value.
+
+  -m, --mode           Required. Value mode: percent or raw.
+
+  -c, --camera         Camera device name fragment.
+
+  -d, --device-path    Concrete camera device path.
+
+  -s, --slot           PTZControl camera slot 1..3.
+
+  --help               Display this help screen.
+
+  --version            Display version information.
+
+```
+
+## move-seek
+
+```text
+PTZControlConsole 1.0.0.0
+
+  --tolerance          (Default: 2) Allowed target distance in the selected
+                       mode.
+
+  --max-iterations     (Default: 30) Maximum relative correction attempts.
+
+  --settle-ms          (Default: 250) Delay after each relative movement
+                       attempt.
 
   -x, --pan            Pan axis value.
 

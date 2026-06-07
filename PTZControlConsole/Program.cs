@@ -34,6 +34,7 @@ class Program
         typeof(ZoomAbsoluteOptions),
         typeof(ZoomRelativeOptions),
         typeof(MoveAbsoluteOptions),
+        typeof(MoveSeekOptions),
         typeof(MoveRelativeOptions)
     };
     private static readonly Type[] AllVerbTypes = PublicVerbTypes.Concat(new[] { typeof(DocsOptions) }).ToArray();
@@ -131,6 +132,7 @@ class Program
             ZoomAbsoluteOptions options => SetAbsoluteZoom(ResolveCamera(ToOptions(options)), options.Value, ParseMode(options.ModeName)),
             ZoomRelativeOptions options => SetRelativeZoom(ResolveCamera(ToOptions(options)), options.ValueDelta, ParseMode(options.ModeName)),
             MoveAbsoluteOptions options => MoveAbsolute(ResolveCamera(ToOptions(options)), ToOptions(options), ParseMode(options.ModeName)),
+            MoveSeekOptions options => MoveSeek(ResolveCamera(ToOptions(options)), ToOptions(options), ParseMode(options.ModeName), options),
             MoveRelativeOptions options => MoveRelative(ResolveCamera(ToOptions(options)), ToOptions(options), ParseMode(options.ModeName)),
             DocsOptions options => GenerateDocs(options),
             _ => throw new ArgumentException("Unknown command.")
@@ -600,6 +602,42 @@ class Program
         return Ok();
     }
 
+    static int MoveSeek(string camera, Options options, ValueMode mode, MoveSeekOptions seekOptions)
+    {
+        if (options.X is null && options.Y is null) throw new ArgumentException("move-seek requires -x/--pan and/or -y/--tilt.");
+
+        var panTarget = options.X is null ? (int?)null : ConvertAbsoluteValue(camera, UvcCameraProperty.Pan, options.X.Value, mode);
+        var tiltTarget = options.Y is null ? (int?)null : ConvertAbsoluteValue(camera, UvcCameraProperty.Tilt, options.Y.Value, mode);
+        var panTolerance = panTarget is null ? 0 : ConvertSeekTolerance(camera, UvcCameraProperty.Pan, seekOptions.Tolerance, mode);
+        var tiltTolerance = tiltTarget is null ? 0 : ConvertSeekTolerance(camera, UvcCameraProperty.Tilt, seekOptions.Tolerance, mode);
+        var maxIterations = Math.Max(1, seekOptions.MaxIterations);
+        var settleMs = Math.Max(0, seekOptions.SettleMilliseconds);
+
+        var lastDistance = GetSeekDistance(camera, panTarget, tiltTarget);
+        for (var iteration = 1; iteration <= maxIterations; iteration++)
+        {
+            var panCurrent = panTarget is null ? (int?)null : CameraBackend.GetValue(camera, UvcCameraProperty.Pan);
+            var tiltCurrent = tiltTarget is null ? (int?)null : CameraBackend.GetValue(camera, UvcCameraProperty.Tilt);
+            var panReached = panTarget is null || Math.Abs(panTarget.Value - panCurrent!.Value) <= panTolerance;
+            var tiltReached = tiltTarget is null || Math.Abs(tiltTarget.Value - tiltCurrent!.Value) <= tiltTolerance;
+            if (panReached && tiltReached)
+                return Ok();
+
+            var panDirection = panTarget is null ? (int?)null : Math.Sign(panTarget.Value - panCurrent!.Value);
+            var tiltDirection = tiltTarget is null ? (int?)null : Math.Sign(tiltTarget.Value - tiltCurrent!.Value);
+            CameraBackend.MoveRelativePanTilt(camera, panDirection, tiltDirection);
+            if (settleMs > 0)
+                Thread.Sleep(settleMs);
+
+            var distance = GetSeekDistance(camera, panTarget, tiltTarget);
+            if (distance >= lastDistance)
+                throw new InvalidOperationException($"move-seek did not make progress after {iteration} iteration(s). Current distance: {distance}; previous distance: {lastDistance}.");
+            lastDistance = distance;
+        }
+
+        throw new TimeoutException($"move-seek did not reach the target within {maxIterations} iteration(s). Final distance: {lastDistance}.");
+    }
+
     static int MoveRelative(string camera, Options options, ValueMode mode)
     {
         if (options.X is null && options.Y is null) throw new ArgumentException("move-relative requires -x/--pan and/or -y/--tilt.");
@@ -614,6 +652,16 @@ class Program
             CameraBackend.SetPanTiltZoom(camera, pan, tilt);
         }
         return Ok();
+    }
+
+    static int GetSeekDistance(string camera, int? panTarget, int? tiltTarget)
+    {
+        var distance = 0;
+        if (panTarget is not null)
+            distance += Math.Abs(panTarget.Value - CameraBackend.GetValue(camera, UvcCameraProperty.Pan));
+        if (tiltTarget is not null)
+            distance += Math.Abs(tiltTarget.Value - CameraBackend.GetValue(camera, UvcCameraProperty.Tilt));
+        return distance;
     }
 
     static int Ok()
@@ -901,6 +949,16 @@ class Program
         return Math.Clamp(value, range.min, range.max);
     }
 
+    static int ConvertSeekTolerance(string camera, UvcCameraProperty property, int tolerance, ValueMode mode)
+    {
+        tolerance = Math.Max(0, tolerance);
+        if (mode == ValueMode.Raw)
+            return tolerance;
+
+        var range = CameraBackend.GetRange(camera, property);
+        return Math.Max(1, (int)Math.Round((range.max - range.min) * (tolerance / 100.0)));
+    }
+
     static int AddRawDelta(string camera, UvcCameraProperty property, int delta)
     {
         var range = CameraBackend.GetRange(camera, property);
@@ -1185,6 +1243,19 @@ class Program
     [Verb("move-absolute", HelpText = "Set absolute pan and/or tilt values.")]
     sealed class MoveAbsoluteOptions : MoveOptions
     {
+    }
+
+    [Verb("move-seek", HelpText = "Experimentally seek absolute pan and/or tilt values using relative movement.")]
+    sealed class MoveSeekOptions : MoveOptions
+    {
+        [Option("tolerance", Default = 2, HelpText = "Allowed target distance in the selected mode.")]
+        public int Tolerance { get; set; }
+
+        [Option("max-iterations", Default = 30, HelpText = "Maximum relative correction attempts.")]
+        public int MaxIterations { get; set; }
+
+        [Option("settle-ms", Default = 250, HelpText = "Delay after each relative movement attempt.")]
+        public int SettleMilliseconds { get; set; }
     }
 
     [Verb("move-relative", HelpText = "Change pan and/or tilt by relative deltas.")]

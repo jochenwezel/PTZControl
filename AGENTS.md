@@ -16,4 +16,8 @@
   short aliases are `-x` and `-y`.
 - Unknown command-line parameters must fail loudly. Do not silently ignore
   parser errors or selector options that are not valid for a verb.
+- DirectShow/IAMCameraControl results can differ between the agent sandbox and
+  a normal interactive process. If camera capability reads unexpectedly report
+  "IAMCameraControl (UVC) is not supported", re-run the same command outside the
+  sandbox before treating it as a real device limitation.
 - Always create GitHub issues in English.
