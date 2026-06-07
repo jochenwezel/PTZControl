@@ -59,6 +59,15 @@ Available restore targets:
 Presets:
   Restore range: 1..8
   Save range: 1..8
+  Storage: camera Logitech extension unit
+  Preset 1: name=Speaker; values=not readable
+  Preset 2: name=Stage; values=not readable
+  Preset 3: name=(none); values=not readable
+  Preset 4: name=(none); values=not readable
+  Preset 5: name=(none); values=not readable
+  Preset 6: name=(none); values=not readable
+  Preset 7: name=(none); values=not readable
+  Preset 8: name=(none); values=not readable
 ```
 
 Example `list-presets` output:
@@ -68,9 +77,9 @@ Camera Device Name: PTZ Pro 2
 PTZControl app camera slot: 1
 Camera Slot Alias: Main camera
 Preset storage: camera Logitech extension unit
-* Preset 1: name=Speaker; values=not readable
-* Preset 2: name=Stage; values=not readable
-* Preset 3: name=(none); values=not readable
+Preset 1: name=Speaker; values=not readable
+Preset 2: name=Stage; values=not readable
+Preset 3: name=(none); values=not readable
 ```
 
 ## Preset and camera friendly names

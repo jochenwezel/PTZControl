@@ -226,16 +226,16 @@ class Program
         builder.AppendLine("## Main help");
         builder.AppendLine();
         builder.AppendLine("```text");
-        builder.Append(RenderMainHelp());
+        builder.Append(RenderMainHelp(forDocumentation: true));
         builder.AppendLine("```");
         builder.AppendLine();
     }
 
-    static string RenderMainHelp()
+    static string RenderMainHelp(bool forDocumentation = false)
     {
         var help = new HelpText
         {
-            Heading = GetVersionLine(),
+            Heading = forDocumentation ? GetDocumentationVersionLine() : GetVersionLine(),
             Copyright = ""
         };
         help.AddVerbs(PublicVerbTypes);
@@ -251,22 +251,28 @@ class Program
         return $"PTZControlConsole {informationalVersion ?? assembly.GetName().Version?.ToString() ?? "unknown"}";
     }
 
+    static string GetDocumentationVersionLine()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        return $"PTZControlConsole {assembly.GetName().Version?.ToString() ?? "VERSION"}";
+    }
+
     static void AppendHelpBlock(StringBuilder builder, string title, string[] args)
     {
         builder.AppendLine($"## {title}");
         builder.AppendLine();
         builder.AppendLine("```text");
-        builder.Append(CaptureParserHelp(args));
+        builder.Append(CaptureParserHelp(args, forDocumentation: true));
         builder.AppendLine("```");
         builder.AppendLine();
     }
 
-    static string CaptureParserHelp(string[] args)
+    static string CaptureParserHelp(string[] args, bool forDocumentation = false)
     {
         var result = DocumentationParser.ParseArguments(args, AllVerbTypes);
         var text = HelpText.AutoBuild(result, help =>
         {
-            help.Heading = GetVersionLine();
+            help.Heading = forDocumentation ? GetDocumentationVersionLine() : GetVersionLine();
             help.Copyright = "";
             return HelpText.DefaultParsingErrorsHandler(result, help);
         }, example => example).ToString();
@@ -341,6 +347,15 @@ class Program
         Presets:
           Restore range: 1..8
           Save range: 1..8
+          Storage: camera Logitech extension unit
+          Preset 1: name=Speaker; values=not readable
+          Preset 2: name=Stage; values=not readable
+          Preset 3: name=(none); values=not readable
+          Preset 4: name=(none); values=not readable
+          Preset 5: name=(none); values=not readable
+          Preset 6: name=(none); values=not readable
+          Preset 7: name=(none); values=not readable
+          Preset 8: name=(none); values=not readable
         
         """;
 
@@ -350,14 +365,14 @@ class Program
         PTZControl app camera slot: 1
         Camera Slot Alias: Main camera
         Preset storage: camera Logitech extension unit
-        * Preset 1: name=Speaker; values=not readable
-        * Preset 2: name=Stage; values=not readable
-        * Preset 3: name=(none); values=not readable
-        * Preset 4: name=(none); values=not readable
-        * Preset 5: name=(none); values=not readable
-        * Preset 6: name=(none); values=not readable
-        * Preset 7: name=(none); values=not readable
-        * Preset 8: name=(none); values=not readable
+        Preset 1: name=Speaker; values=not readable
+        Preset 2: name=Stage; values=not readable
+        Preset 3: name=(none); values=not readable
+        Preset 4: name=(none); values=not readable
+        Preset 5: name=(none); values=not readable
+        Preset 6: name=(none); values=not readable
+        Preset 7: name=(none); values=not readable
+        Preset 8: name=(none); values=not readable
         
         """;
 
@@ -483,13 +498,7 @@ class Program
             Console.WriteLine("PTZControl app camera slot: not available");
         }
         Console.WriteLine("Preset storage: camera Logitech extension unit");
-
-        for (var preset = 1; preset <= 8; preset++)
-        {
-            var name = slotIndex is null ? null : ReadPresetName(slotIndex.Value, preset);
-            var displayName = string.IsNullOrWhiteSpace(name) ? "(none)" : name;
-            Console.WriteLine($"* Preset {preset}: name={displayName}; values=not readable");
-        }
+        PrintPresetNames(slotIndex, "");
 
         return 0;
     }
@@ -523,7 +532,19 @@ class Program
         Console.WriteLine("Presets:");
         Console.WriteLine("  Restore range: 1..8");
         Console.WriteLine("  Save range: 1..8");
+        Console.WriteLine("  Storage: camera Logitech extension unit");
+        PrintPresetNames(slotIndex, "  ");
         return 0;
+    }
+
+    static void PrintPresetNames(int? slotIndex, string indent)
+    {
+        for (var preset = 1; preset <= 8; preset++)
+        {
+            var name = slotIndex is null ? null : ReadPresetName(slotIndex.Value, preset);
+            var displayName = string.IsNullOrWhiteSpace(name) ? "(none)" : name;
+            Console.WriteLine($"{indent}Preset {preset}: name={displayName}; values=not readable");
+        }
     }
 
     static void PrintPropertyInfo(string label, string camera, UvcCameraProperty property)
