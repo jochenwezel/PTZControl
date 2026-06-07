@@ -4,6 +4,7 @@ set -u
 EXE_PATH="./PTZControlConsole"
 CAMERA=""
 DEVICE_PATH=""
+SLOT=""
 RAW_ZOOM_DELTA=100
 RAW_MOVE_DELTA=3000
 RAW_MOVE_ABSOLUTE=9000
@@ -21,6 +22,10 @@ while [ $# -gt 0 ]; do
       ;;
     --device-path)
       DEVICE_PATH="$2"
+      shift 2
+      ;;
+    --slot)
+      SLOT="$2"
       shift 2
       ;;
     --raw-zoom-delta)
@@ -97,6 +102,8 @@ if [ -n "$CAMERA" ]; then
   selector=(--camera "$CAMERA")
 elif [ -n "$DEVICE_PATH" ]; then
   selector=(--device-path "$DEVICE_PATH")
+elif [ -n "$SLOT" ]; then
+  selector=(--slot "$SLOT")
 fi
 
 log_line "PTZControlConsole guided Linux camera test"

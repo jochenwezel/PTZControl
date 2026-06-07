@@ -2,6 +2,7 @@ param(
     [string]$ExePath = ".\PTZControlConsole.exe",
     [string]$Camera,
     [string]$DevicePath,
+    [int]$Slot,
     [int]$RawZoomDelta = 100,
     [int]$RawMoveDelta = 3000,
     [int]$RawMoveAbsolute = 9000,
@@ -57,6 +58,9 @@ if ($Camera) {
 }
 elseif ($DevicePath) {
     $selector = @("--device-path", $DevicePath)
+}
+elseif ($Slot) {
+    $selector = @("--slot", "$Slot")
 }
 
 Write-Log "PTZControlConsole guided Windows camera test"

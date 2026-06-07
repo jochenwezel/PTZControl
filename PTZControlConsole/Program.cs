@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using CommandLine;
 using Microsoft.Win32;
 using PTZControl.Uvc;
 using PTZControlConsole;
@@ -36,111 +37,65 @@ class Program
             return 1;
         }
 
-        var command = args[0].ToLowerInvariant();
+        return Parser.Default.ParseArguments(args,
+            typeof(ListDevicesOptions),
+            typeof(CamDeviceInfoOptions),
+            typeof(ListPresetsOptions),
+            typeof(GetPresetNameOptions),
+            typeof(SetPresetNameOptions),
+            typeof(ClearPresetNameOptions),
+            typeof(GetCameraNameOptions),
+            typeof(SetCameraNameOptions),
+            typeof(ClearCameraNameOptions),
+            typeof(SwapPresetNamesOptions),
+            typeof(ConfigOptions),
+            typeof(RestoreHomeOptions),
+            typeof(RestoreDefaultOptions),
+            typeof(RestorePresetOptions),
+            typeof(SavePresetOptions),
+            typeof(ZoomAbsoluteOptions),
+            typeof(ZoomRelativeOptions),
+            typeof(MoveAbsoluteOptions),
+            typeof(MoveRelativeOptions))
+            .MapResult(RunParsed, _ => 1);
+    }
 
-        switch (command)
+    static int RunParsed(object parsed) =>
+        parsed switch
         {
-            case "list-devices":
-                EnsureNoOptions(ParseOptions(args[1..]), "list-devices");
-                return ListDevices();
-            case "cam-device-info":
-            {
-                var options = ParseOptions(args[1..]);
-                return PrintCameraDeviceInfo(ResolveCamera(options));
-            }
-            case "list-presets":
-            {
-                var options = ParseOptions(args[1..]);
-                return ListPresets(ResolveCamera(options));
-            }
-            case "get-preset-name":
-            {
-                var options = ParseOptions(args[2..]);
-                return GetPresetName(options, ParsePreset(args, 1));
-            }
-            case "set-preset-name":
-            {
-                var options = ParseOptions(args[2..]);
-                return SetPresetName(options, ParsePreset(args, 1));
-            }
-            case "clear-preset-name":
-            {
-                var options = ParseOptions(args[2..]);
-                return ClearPresetName(options, ParsePreset(args, 1));
-            }
-            case "get-camera-name":
-            {
-                var options = ParseOptions(args[1..]);
-                return GetCameraName(options);
-            }
-            case "set-camera-name":
-            {
-                var options = ParseOptions(args[1..]);
-                return SetCameraName(options);
-            }
-            case "clear-camera-name":
-            {
-                var options = ParseOptions(args[1..]);
-                return ClearCameraName(options);
-            }
-            case "config":
-            {
-                var options = ParseOptions(args[1..]);
-                return RunConfig(options);
-            }
-            case "swap-preset-names":
-            {
-                var options = ParseOptions(args[1..]);
-                return SwapPresetNames(RequireSlot(options.SlotA, "--slot-a"), RequireSlot(options.SlotB, "--slot-b"));
-            }
-            case "restore-home":
-            {
-                var options = ParseOptions(args[1..]);
-                var target = RequireTarget(options, "restore-home");
-                return RestoreHome(ResolveCamera(options), target);
-            }
-            case "restore-default":
-            {
-                var options = ParseOptions(args[1..]);
-                var target = RequireTarget(options, "restore-default");
-                return RestoreDefault(ResolveCamera(options), target);
-            }
-            case "restore-preset":
-            {
-                var options = ParseOptions(args[2..]);
-                CameraBackend.RestorePreset(ResolveCamera(options), ParsePreset(args, 1));
-                return Ok();
-            }
-            case "save-preset":
-            {
-                var options = ParseOptions(args[2..]);
-                WarnUnsupportedPresetName(options);
-                CameraBackend.SavePreset(ResolveCamera(options), ParsePreset(args, 1));
-                return Ok();
-            }
-            case "zoom-absolute":
-            {
-                var options = ParseOptions(args[2..]);
-                return SetAbsoluteZoom(ResolveCamera(options), ParseValue(args, 1), RequireMode(options, "zoom-absolute"));
-            }
-            case "zoom-relative":
-            {
-                var options = ParseOptions(args[2..]);
-                return SetRelativeZoom(ResolveCamera(options), ParseValue(args, 1), RequireMode(options, "zoom-relative"));
-            }
-            case "move-absolute":
-            {
-                var options = ParseOptions(args[1..]);
-                return MoveAbsolute(ResolveCamera(options), options, RequireMode(options, "move-absolute"));
-            }
-            case "move-relative":
-            {
-                var options = ParseOptions(args[1..]);
-                return MoveRelative(ResolveCamera(options), options, RequireMode(options, "move-relative"));
-            }
-            default:
-                throw new ArgumentException($"Unknown command '{args[0]}'.");
-        }
+            ListDevicesOptions => ListDevices(),
+            CamDeviceInfoOptions options => PrintCameraDeviceInfo(ResolveCamera(ToOptions(options))),
+            ListPresetsOptions options => ListPresets(ResolveCamera(ToOptions(options))),
+            GetPresetNameOptions options => GetPresetName(ToOptions(options), ParsePreset(options.Preset)),
+            SetPresetNameOptions options => SetPresetName(ToOptions(options), ParsePreset(options.Preset)),
+            ClearPresetNameOptions options => ClearPresetName(ToOptions(options), ParsePreset(options.Preset)),
+            GetCameraNameOptions options => GetCameraName(ToOptions(options)),
+            SetCameraNameOptions options => SetCameraName(ToOptions(options)),
+            ClearCameraNameOptions options => ClearCameraName(ToOptions(options)),
+            SwapPresetNamesOptions options => SwapPresetNames(RequireSlot(options.SlotA, "--slot-a"), RequireSlot(options.SlotB, "--slot-b")),
+            ConfigOptions options => RunConfig(ToOptions(options)),
+            RestoreHomeOptions options => RestoreHome(ResolveCamera(ToOptions(options)), ParseTarget(options.TargetName)),
+            RestoreDefaultOptions options => RestoreDefault(ResolveCamera(ToOptions(options)), ParseTarget(options.TargetName)),
+            RestorePresetOptions options =>
+                RunAndOk(() => CameraBackend.RestorePreset(ResolveCamera(ToOptions(options)), ParsePreset(options.Preset))),
+            SavePresetOptions options =>
+                RunAndOk(() =>
+                {
+                    var internalOptions = ToOptions(options);
+                    WarnUnsupportedPresetName(internalOptions);
+                    CameraBackend.SavePreset(ResolveCamera(internalOptions), ParsePreset(options.Preset));
+                }),
+            ZoomAbsoluteOptions options => SetAbsoluteZoom(ResolveCamera(ToOptions(options)), options.Value, ParseMode(options.ModeName)),
+            ZoomRelativeOptions options => SetRelativeZoom(ResolveCamera(ToOptions(options)), options.ValueDelta, ParseMode(options.ModeName)),
+            MoveAbsoluteOptions options => MoveAbsolute(ResolveCamera(ToOptions(options)), ToOptions(options), ParseMode(options.ModeName)),
+            MoveRelativeOptions options => MoveRelative(ResolveCamera(ToOptions(options)), ToOptions(options), ParseMode(options.ModeName)),
+            _ => throw new ArgumentException("Unknown command.")
+        };
+
+    static int RunAndOk(Action action)
+    {
+        action();
+        return Ok();
     }
 
     static int Fail(Exception ex, int exitCode)
@@ -158,8 +113,8 @@ class Program
     {
         Console.WriteLine("Usage:");
         Console.WriteLine("  PTZControlConsole list-devices");
-        Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\" | --device-path \"DevicePath\"]");
-        Console.WriteLine("  PTZControlConsole list-presets [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole list-presets [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
         Console.WriteLine("  PTZControlConsole get-preset-name 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
         Console.WriteLine("  PTZControlConsole set-preset-name 1..8 --friendlyname \"Title\" [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
         Console.WriteLine("  PTZControlConsole clear-preset-name 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
@@ -169,14 +124,14 @@ class Program
         Console.WriteLine("  PTZControlConsole swap-preset-names --slot-a 1..3 --slot-b 1..3");
         Console.WriteLine("  PTZControlConsole config --export [json-path]");
         Console.WriteLine("  PTZControlConsole config --import json-path");
-        Console.WriteLine("  PTZControlConsole restore-home --target zoom|move|all [--camera \"NamePart\" | --device-path \"DevicePath\"]");
-        Console.WriteLine("  PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera \"NamePart\" | --device-path \"DevicePath\"]");
-        Console.WriteLine("  PTZControlConsole restore-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\"]");
-        Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\"] [--friendlyname \"Title\"]");
-        Console.WriteLine("  PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\"]");
-        Console.WriteLine("  PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\"]");
-        Console.WriteLine("  PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera \"NamePart\" | --device-path \"DevicePath\"]");
-        Console.WriteLine("  PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_DELTA] [--camera \"NamePart\" | --device-path \"DevicePath\"]");
+        Console.WriteLine("  PTZControlConsole restore-home --target zoom|move|all [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole restore-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3] [--friendlyname \"Title\"]");
+        Console.WriteLine("  PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_DELTA] [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
     }
 
     static int ListDevices()
@@ -368,12 +323,6 @@ class Program
         }
     }
 
-    static void EnsureNoOptions(Options options, string command)
-    {
-        if (options.HasAnyValue)
-            throw new ArgumentException($"{command} does not accept options.");
-    }
-
     static int RestoreHome(string camera, Target target)
     {
         var (zoom, move) = target switch
@@ -456,8 +405,21 @@ class Program
 
     static string ResolveCamera(Options options)
     {
-        if (!string.IsNullOrWhiteSpace(options.Camera) && !string.IsNullOrWhiteSpace(options.DevicePath))
-            throw new ArgumentException("Use either --camera or --device-path, not both.");
+        var selectorCount =
+            (!string.IsNullOrWhiteSpace(options.Camera) ? 1 : 0) +
+            (!string.IsNullOrWhiteSpace(options.DevicePath) ? 1 : 0) +
+            (options.Slot.HasValue ? 1 : 0);
+        if (selectorCount > 1)
+            throw new ArgumentException("Use only one camera selector: --camera, --device-path, or --slot.");
+
+        if (options.Slot.HasValue)
+        {
+            var slot = RequireSlot(options.Slot, "--slot");
+            var slotCameras = CameraBackend.Enumerate();
+            if (slotCameras.Count < slot)
+                throw new InvalidOperationException($"Camera slot {slot} is not available. Found {slotCameras.Count} camera(s).");
+            return slotCameras[slot - 1].Name;
+        }
 
         if (!string.IsNullOrWhiteSpace(options.DevicePath))
             return options.DevicePath;
@@ -736,99 +698,20 @@ class Program
     {
         if (args.Length <= index || !int.TryParse(args[index], out var preset))
             throw new ArgumentException("Preset command requires a preset number.");
+        return ParsePreset(preset);
+    }
+
+    static int ParsePreset(int preset)
+    {
         if (preset < 1 || preset > 8)
             throw new ArgumentOutOfRangeException(nameof(preset), "Preset number must be between 1 and 8. Use restore-home for the Logitech home position.");
         return preset;
-    }
-
-    static int ParseValue(string[] args, int index)
-    {
-        if (args.Length <= index || !int.TryParse(args[index], out var value))
-            throw new ArgumentException("Command requires a numeric value.");
-        return value;
-    }
-
-    static ValueMode RequireMode(Options options, string command)
-    {
-        if (options.Mode is null)
-            throw new ArgumentException($"{command} requires --mode percent or --mode raw.");
-        return options.Mode.Value;
-    }
-
-    static Target RequireTarget(Options options, string command)
-    {
-        if (options.Target is null)
-            throw new ArgumentException($"{command} requires --target.");
-        return options.Target.Value;
     }
 
     static void WarnUnsupportedPresetName(Options options)
     {
         if (!string.IsNullOrWhiteSpace(options.FriendlyName))
             Console.Error.WriteLine("Preset names are not saved by save-preset; use set-preset-name to store a friendly name.");
-    }
-
-    static Options ParseOptions(string[] args)
-    {
-        var options = new Options();
-        for (var i = 0; i < args.Length; i++)
-        {
-            switch (args[i].ToLowerInvariant())
-            {
-                case "--camera":
-                    options.Camera = ReadValue(args, ref i);
-                    break;
-                case "--device-path":
-                    options.DevicePath = ReadValue(args, ref i);
-                    break;
-                case "--friendlyname":
-                    options.FriendlyName = ReadValue(args, ref i);
-                    break;
-                case "--x":
-                    options.X = int.Parse(ReadValue(args, ref i));
-                    break;
-                case "--y":
-                    options.Y = int.Parse(ReadValue(args, ref i));
-                    break;
-                case "--mode":
-                    options.Mode = ParseMode(ReadValue(args, ref i));
-                    break;
-                case "--target":
-                    options.Target = ParseTarget(ReadValue(args, ref i));
-                    break;
-                case "--slot":
-                    options.Slot = int.Parse(ReadValue(args, ref i));
-                    break;
-                case "--slot-a":
-                    options.SlotA = int.Parse(ReadValue(args, ref i));
-                    break;
-                case "--slot-b":
-                    options.SlotB = int.Parse(ReadValue(args, ref i));
-                    break;
-                case "--export":
-                    options.ExportConfig = true;
-                    if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
-                    {
-                        i++;
-                        options.ExportConfigPath = args[i];
-                    }
-                    break;
-                case "--import":
-                    options.ImportConfigPath = ReadValue(args, ref i);
-                    break;
-                default:
-                    throw new ArgumentException($"Unknown option '{args[i]}'.");
-            }
-        }
-        return options;
-    }
-
-    static string ReadValue(string[] args, ref int index)
-    {
-        if (index + 1 >= args.Length)
-            throw new ArgumentException($"{args[index]} requires a value.");
-        index++;
-        return args[index];
     }
 
     static ValueMode ParseMode(string value) =>
@@ -906,6 +789,226 @@ class Program
         }
     }
 
+    interface ICameraSelectionOptions
+    {
+        string? Camera { get; }
+        string? DevicePath { get; }
+        int? Slot { get; }
+    }
+
+    interface IFriendlyNameOptions
+    {
+        string? FriendlyName { get; }
+    }
+
+    interface IConfigTransportOptions
+    {
+        bool ExportConfig { get; }
+        string? ExportConfigPath { get; }
+        string? ImportConfigPath { get; }
+    }
+
+    interface IMoveOptions
+    {
+        int? X { get; }
+        int? Y { get; }
+    }
+
+    abstract class CameraSelectionOptions : ICameraSelectionOptions
+    {
+        [Option("camera", HelpText = "Camera device name fragment.")]
+        public string? Camera { get; set; }
+
+        [Option("device-path", HelpText = "Concrete camera device path.")]
+        public string? DevicePath { get; set; }
+
+        [Option("slot", HelpText = "PTZControl camera slot 1..3.")]
+        public int? Slot { get; set; }
+    }
+
+    [Verb("list-devices")]
+    sealed class ListDevicesOptions
+    {
+    }
+
+    [Verb("cam-device-info")]
+    sealed class CamDeviceInfoOptions : CameraSelectionOptions
+    {
+    }
+
+    [Verb("list-presets")]
+    sealed class ListPresetsOptions : CameraSelectionOptions
+    {
+    }
+
+    abstract class PresetOptions : CameraSelectionOptions
+    {
+        [Value(0, Required = true, MetaName = "preset")]
+        public int Preset { get; set; }
+    }
+
+    [Verb("get-preset-name")]
+    sealed class GetPresetNameOptions : PresetOptions
+    {
+    }
+
+    [Verb("set-preset-name")]
+    sealed class SetPresetNameOptions : PresetOptions, IFriendlyNameOptions
+    {
+        [Option("friendlyname", Required = true)]
+        public string? FriendlyName { get; set; }
+    }
+
+    [Verb("clear-preset-name")]
+    sealed class ClearPresetNameOptions : PresetOptions
+    {
+    }
+
+    [Verb("get-camera-name")]
+    sealed class GetCameraNameOptions
+    {
+        [Option("slot", Required = true)]
+        public int? Slot { get; set; }
+    }
+
+    [Verb("set-camera-name")]
+    sealed class SetCameraNameOptions : IFriendlyNameOptions
+    {
+        [Option("slot", Required = true)]
+        public int? Slot { get; set; }
+
+        [Option("friendlyname", Required = true)]
+        public string? FriendlyName { get; set; }
+    }
+
+    [Verb("clear-camera-name")]
+    sealed class ClearCameraNameOptions
+    {
+        [Option("slot", Required = true)]
+        public int? Slot { get; set; }
+    }
+
+    [Verb("swap-preset-names")]
+    sealed class SwapPresetNamesOptions
+    {
+        [Option("slot-a", Required = true)]
+        public int? SlotA { get; set; }
+
+        [Option("slot-b", Required = true)]
+        public int? SlotB { get; set; }
+    }
+
+    [Verb("config")]
+    sealed class ConfigOptions : IConfigTransportOptions
+    {
+        [Option("export", SetName = "export")]
+        public bool ExportConfig { get; set; }
+
+        [Value(0, Required = false, MetaName = "json-path")]
+        public string? ExportConfigPath { get; set; }
+
+        [Option("import", SetName = "import")]
+        public string? ImportConfigPath { get; set; }
+    }
+
+    abstract class TargetCameraOptions : CameraSelectionOptions
+    {
+        [Option("target", Required = true)]
+        public string TargetName { get; set; } = "";
+    }
+
+    [Verb("restore-home")]
+    sealed class RestoreHomeOptions : TargetCameraOptions
+    {
+    }
+
+    [Verb("restore-default")]
+    sealed class RestoreDefaultOptions : TargetCameraOptions
+    {
+    }
+
+    [Verb("restore-preset")]
+    sealed class RestorePresetOptions : PresetOptions
+    {
+    }
+
+    [Verb("save-preset")]
+    sealed class SavePresetOptions : PresetOptions, IFriendlyNameOptions
+    {
+        [Option("friendlyname")]
+        public string? FriendlyName { get; set; }
+    }
+
+    abstract class ModeCameraOptions : CameraSelectionOptions
+    {
+        [Option("mode", Required = true)]
+        public string ModeName { get; set; } = "";
+    }
+
+    [Verb("zoom-absolute")]
+    sealed class ZoomAbsoluteOptions : ModeCameraOptions
+    {
+        [Value(0, Required = true, MetaName = "value")]
+        public int Value { get; set; }
+    }
+
+    [Verb("zoom-relative")]
+    sealed class ZoomRelativeOptions : ModeCameraOptions
+    {
+        [Value(0, Required = true, MetaName = "value-delta")]
+        public int ValueDelta { get; set; }
+    }
+
+    abstract class MoveOptions : ModeCameraOptions, IMoveOptions
+    {
+        [Option("x")]
+        public int? X { get; set; }
+
+        [Option("y")]
+        public int? Y { get; set; }
+    }
+
+    [Verb("move-absolute")]
+    sealed class MoveAbsoluteOptions : MoveOptions
+    {
+    }
+
+    [Verb("move-relative")]
+    sealed class MoveRelativeOptions : MoveOptions
+    {
+    }
+
+    static Options ToOptions(object source)
+    {
+        var options = new Options();
+        if (source is ICameraSelectionOptions camera)
+        {
+            options.Camera = camera.Camera;
+            options.DevicePath = camera.DevicePath;
+            options.Slot = camera.Slot;
+        }
+        if (source is IFriendlyNameOptions friendlyName)
+            options.FriendlyName = friendlyName.FriendlyName;
+        if (source is IConfigTransportOptions config)
+        {
+            options.ExportConfig = config.ExportConfig;
+            options.ExportConfigPath = config.ExportConfigPath;
+            options.ImportConfigPath = config.ImportConfigPath;
+        }
+        if (source is GetCameraNameOptions getCameraName)
+            options.Slot = getCameraName.Slot;
+        if (source is SetCameraNameOptions setCameraName)
+            options.Slot = setCameraName.Slot;
+        if (source is ClearCameraNameOptions clearCameraName)
+            options.Slot = clearCameraName.Slot;
+        if (source is IMoveOptions move)
+        {
+            options.X = move.X;
+            options.Y = move.Y;
+        }
+        return options;
+    }
+
     sealed class Options
     {
         public string? Camera { get; set; }
@@ -914,26 +1017,8 @@ class Program
         public bool ExportConfig { get; set; }
         public string? ExportConfigPath { get; set; }
         public string? ImportConfigPath { get; set; }
-        public ValueMode? Mode { get; set; }
-        public Target? Target { get; set; }
         public int? Slot { get; set; }
-        public int? SlotA { get; set; }
-        public int? SlotB { get; set; }
         public int? X { get; set; }
         public int? Y { get; set; }
-        public bool HasAnyValue =>
-            !string.IsNullOrWhiteSpace(Camera) ||
-            !string.IsNullOrWhiteSpace(DevicePath) ||
-            !string.IsNullOrWhiteSpace(FriendlyName) ||
-            ExportConfig ||
-            !string.IsNullOrWhiteSpace(ExportConfigPath) ||
-            !string.IsNullOrWhiteSpace(ImportConfigPath) ||
-            Mode.HasValue ||
-            Target.HasValue ||
-            Slot.HasValue ||
-            SlotA.HasValue ||
-            SlotB.HasValue ||
-            X.HasValue ||
-            Y.HasValue;
     }
 }

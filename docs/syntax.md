@@ -8,8 +8,8 @@ Companion integration.
 
 ```text
 PTZControlConsole list-devices
-PTZControlConsole cam-device-info [--camera "NamePart" | --device-path "DevicePath"]
-PTZControlConsole list-presets [--camera "NamePart" | --device-path "DevicePath"]
+PTZControlConsole cam-device-info [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
+PTZControlConsole list-presets [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
 ```
 
 Example `list-devices` output:
@@ -103,17 +103,17 @@ compatibility. Linux and macOS use JSON metadata files.
 ## Restore commands
 
 ```text
-PTZControlConsole restore-home --target zoom|move|all [--camera "NamePart" | --device-path "DevicePath"]
-PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera "NamePart" | --device-path "DevicePath"]
-PTZControlConsole restore-preset 1..8 [--camera "NamePart" | --device-path "DevicePath"]
-PTZControlConsole save-preset 1..8 [--camera "NamePart" | --device-path "DevicePath"] [--friendlyname "Title"]
+PTZControlConsole restore-home --target zoom|move|all [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
+PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
+PTZControlConsole restore-preset 1..8 [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
+PTZControlConsole save-preset 1..8 [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3] [--friendlyname "Title"]
 ```
 
 ## Zoom commands
 
 ```text
-PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera "NamePart" | --device-path "DevicePath"]
-PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera "NamePart" | --device-path "DevicePath"]
+PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
+PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
 ```
 
 `--mode percent` uses values relative to the CLI percent range. `--mode raw`
@@ -122,8 +122,8 @@ uses device/driver raw values.
 ## Move commands
 
 ```text
-PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera "NamePart" | --device-path "DevicePath"]
-PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_DELTA] [--camera "NamePart" | --device-path "DevicePath"]
+PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
+PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_DELTA] [--camera "NamePart" | --device-path "DevicePath" | --slot 1..3]
 ```
 
 `--x` controls pan. `--y` controls tilt.
@@ -136,6 +136,7 @@ PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_
 --slot 1..3
 ```
 
-`--camera` selects by camera device name fragment. `--device-path` selects by a
-concrete device path. `--slot` selects PTZControl metadata slot 1, 2, or 3 and
-is used for friendly names.
+Use only one selector at a time. `--camera` selects by camera device name
+fragment. `--device-path` selects by a concrete device path. `--slot` selects
+the currently enumerated PTZControl camera slot 1, 2, or 3 and is also used for
+friendly names.
