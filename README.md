@@ -1,5 +1,40 @@
 # PTZControl
 
+## About this fork
+
+This fork builds on Martin Richter's original PTZControl project for Logitech
+PTZ cameras and keeps the original Windows GUI application available. The fork
+adds a stronger focus on automation, command-line operation, release packaging,
+and future Bitfocus Companion integration.
+
+Important additions in this fork include:
+
+- A .NET-based `PTZControlConsole` command-line application.
+- Cross-platform console support for Windows and experimental Linux builds, with
+  macOS support planned for the same backend architecture.
+- Modern CLI verbs for device discovery, camera information, zoom, pan/tilt,
+  presets, home/default restore, and preset/camera friendly names.
+- Explicit `--camera`, `--device-path`, and `--slot` selection concepts for
+  automation scenarios.
+- Percent and raw value modes for camera movement commands.
+- Cross-platform metadata handling: Windows stays compatible with the original
+  registry storage, while Linux/macOS use JSON metadata files.
+- Config export/import commands for moving preset names and camera slot aliases
+  between systems.
+- GitHub Actions release packaging for the Windows GUI, Windows console builds,
+  and experimental Linux console builds.
+- Guided Windows/Linux camera test scripts to collect reproducible feedback from
+  real PTZ Pro 2 camera tests.
+
+The original project remains the upstream reference for the classic PTZControl
+application. Fork-specific feature work and test feedback are tracked in this
+repository's issues.
+
+## Documentation
+
+- [Command syntax](docs/syntax.md)
+- [Linux installation](install-linux.md)
+
 ## History
 This small program is designed to control a Logitech PTZ 2 Pro. The camera was purchased to stream our church services.
 Unfortunately, it quickly turned out that the operation with the remote control is possible but cumbersome and inaccurate. The camera was installed directly behind and above the video technician and always pointing back with the remote control was not comfortable. 
