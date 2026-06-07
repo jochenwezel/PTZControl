@@ -112,21 +112,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: PTZControl-x64
-  
-      - name: Move x64 Artifact
-        run: |
-          mkdir -p PTZControl-${{ env.TAG_NAME }}/x64
-          mv ./PTZControl.exe PTZControl-${{ env.TAG_NAME }}/x64/
+          path: PTZControl-win-x64
   
       - name: Download x86 artifact
         uses: actions/download-artifact@v4
         with:
           name: PTZControl-x86
-  
-      - name: Move x86 Artifact
-        run: |
-          mkdir -p PTZControl-${{ env.TAG_NAME }}/x86
-          mv ./PTZControl.exe PTZControl-${{ env.TAG_NAME }}/x86/
+          path: PTZControl-win-x86
 
       - name: Download console x64 artifact
         uses: actions/download-artifact@v4
@@ -159,9 +151,10 @@ jobs:
   
       - name: Package Files
         run: |
-          zip -r PTZControl.zip PTZControl-${{ env.TAG_NAME }}
-          zip -r PTZControlConsole-win-x64.zip PTZControlConsole-${{ env.TAG_NAME }}-win-x64
-          zip -r PTZControlConsole-win-x86.zip PTZControlConsole-${{ env.TAG_NAME }}-win-x86
+          (cd PTZControl-win-x64 && zip -r ../PTZControl-win-x64.zip .)
+          (cd PTZControl-win-x86 && zip -r ../PTZControl-win-x86.zip .)
+          (cd PTZControlConsole-${{ env.TAG_NAME }}-win-x64 && zip -r ../PTZControlConsole-win-x64.zip .)
+          (cd PTZControlConsole-${{ env.TAG_NAME }}-win-x86 && zip -r ../PTZControlConsole-win-x86.zip .)
           tar -czf PTZControlConsole-linux-x64-beta.tar.gz PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta
   
       - name: Create Release
@@ -170,7 +163,8 @@ jobs:
           name: PTZControl.exe ${{ env.VERSION }}
           prerelease: ${{ env.IS_PREVIEW_RELEASE == 'true' }}
           files: |
-            ./PTZControl.zip
+            ./PTZControl-win-x64.zip
+            ./PTZControl-win-x86.zip
             ./PTZControlConsole-win-x64.zip
             ./PTZControlConsole-win-x86.zip
             ./PTZControlConsole-linux-x64-beta.tar.gz
