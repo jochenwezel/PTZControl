@@ -13,6 +13,7 @@ internal interface ICameraBackend
     (int min, int max, int step, int def) GetRange(string camera, CameraProperty property);
     int GetValue(string camera, CameraProperty property);
     void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null);
+    void MoveRelativePanTilt(string camera, int? x = null, int? y = null);
     void SavePreset(string camera, int presetNumber);
     void RestorePreset(string camera, int presetNumber);
 }
@@ -46,6 +47,9 @@ internal sealed class WindowsUvcCameraBackend : ICameraBackend
 
     public void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null) =>
         UvcCamera.SetPanTiltZoom(camera, pan, tilt, zoom);
+
+    public void MoveRelativePanTilt(string camera, int? x = null, int? y = null) =>
+        UvcCamera.MoveRelativePanTilt(camera, x, y);
 
     public void SavePreset(string camera, int presetNumber) =>
         UvcCamera.SavePreset(camera, presetNumber);
@@ -108,6 +112,13 @@ internal sealed class LinuxPreviewCameraBackend : ICameraBackend
             SetValue(device.FileDescriptor, CameraProperty.Zoom, zoom.Value);
     }
 
+    public void MoveRelativePanTilt(string camera, int? x = null, int? y = null)
+    {
+        var pan = x is null ? (int?)null : AddDelta(camera, CameraProperty.Pan, x.Value);
+        var tilt = y is null ? (int?)null : AddDelta(camera, CameraProperty.Tilt, y.Value);
+        SetPanTiltZoom(camera, pan, tilt);
+    }
+
     public void SavePreset(string camera, int presetNumber) =>
         throw LinuxPresetNotSupported();
 
@@ -120,6 +131,14 @@ internal sealed class LinuxPreviewCameraBackend : ICameraBackend
         value = Math.Clamp(value, range.Minimum, range.Maximum);
         var control = new V4L2Control { Id = ToV4L2ControlId(property), Value = value };
         ThrowIfIoctlFailed(ioctl(fileDescriptor, VidIoctlSCtrl, ref control), $"set {property}");
+    }
+
+    private int AddDelta(string camera, CameraProperty property, int deltaPercent)
+    {
+        var range = GetRange(camera, property);
+        var current = GetValue(camera, property);
+        var delta = (int)Math.Round((range.max - range.min) * (deltaPercent / 100.0));
+        return Math.Clamp(current + delta, range.min, range.max);
     }
 
     private static V4L2QueryControl QueryControl(int fileDescriptor, CameraProperty property)
@@ -247,6 +266,9 @@ internal sealed class UnsupportedCameraBackend(string message) : ICameraBackend
         throw new NotSupportedException(message);
 
     public void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null) =>
+        throw new NotSupportedException(message);
+
+    public void MoveRelativePanTilt(string camera, int? x = null, int? y = null) =>
         throw new NotSupportedException(message);
 
     public void SavePreset(string camera, int presetNumber) =>

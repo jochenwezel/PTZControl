@@ -62,6 +62,9 @@ namespace PTZControl.Uvc
             if (zoom.HasValue) Set(CameraControlProperty.Zoom, zoom.Value);
         }
 
+        public static void MoveRelativePanTilt(string cam, int? x = null, int? y = null) =>
+            LogitechExtensionUnit.MoveRelativePanTilt(cam, x, y);
+
         public static (int min, int max, int step, int def) GetRange(string cam, CameraProperty prop)
         {
             var ctl = GetControl(cam, out var src, out var graph);

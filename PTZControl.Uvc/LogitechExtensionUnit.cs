@@ -12,14 +12,26 @@ namespace PTZControl.Uvc
         private static readonly Guid LogitechXuPeripheralControl = new("FFE52D21-8030-4E2C-82D9-F587D00540BD");
 
         private const int XuVideoFwZoomControl = 0x06;
+        private const int XuPeripheralControlPanTiltRelativeControl = 0x01;
         private const int XuPeripheralControlPanTiltModeControl = 0x02;
-        private const int KsPropertyTypeSet = 0x00000001;
+        private const int KsPropertyTypeSet = 0x00000002;
         private const int KsPropertyTypeSetSupport = 0x00000100;
         private const int KsPropertyTypeTopology = 0x10000000;
         private const int NumPresets = 8;
 
         public static void SavePreset(string cameraNamePart, int presetNumber) =>
             SetPresetMode(cameraNamePart, PresetNumberToModeValue(presetNumber, 4));
+
+        public static void MoveRelativePanTilt(string cameraNamePart, int? x, int? y)
+        {
+            if (x is null && y is null)
+                return;
+
+            var panDirection = Math.Sign(x ?? 0);
+            var tiltDirection = Math.Sign(y ?? 0);
+            var value = CreatePanTiltRelativeValue(panDirection, tiltDirection);
+            SetPeripheralControl(cameraNamePart, XuPeripheralControlPanTiltRelativeControl, value);
+        }
 
         public static void RestorePreset(string cameraNamePart, int presetNumber)
         {
@@ -43,11 +55,29 @@ namespace PTZControl.Uvc
         }
 
         private static void SetPresetMode(string cameraNamePart, int value)
+            => SetPeripheralControl(cameraNamePart, XuPeripheralControlPanTiltModeControl, value);
+
+        private static void SetPeripheralControl(string cameraNamePart, int propertyId, int value)
         {
             var ksControl = GetKsControl(cameraNamePart);
             var peripheralNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuPeripheralControl, "Logitech peripheral control");
-            SetExtensionUnitProperty(ksControl, LogitechXuPeripheralControl, peripheralNodeId, XuPeripheralControlPanTiltModeControl, value);
+            SetExtensionUnitProperty(ksControl, LogitechXuPeripheralControl, peripheralNodeId, propertyId, value);
         }
+
+        private static int CreatePanTiltRelativeValue(int xDirection, int yDirection)
+        {
+            var pan = DirectionToSignedByte(xDirection);
+            var tilt = DirectionToSignedByte(yDirection == 0 ? 0 : -yDirection);
+            return (tilt << 24) | (pan << 8);
+        }
+
+        private static int DirectionToSignedByte(int direction) =>
+            direction switch
+            {
+                < 0 => unchecked((byte)-1),
+                > 0 => 1,
+                _ => 0
+            };
 
         private static void GotoHome(string cameraNamePart)
         {

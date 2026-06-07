@@ -137,10 +137,8 @@ class Program
 
     static int MoveRelative(string camera, Options options)
     {
-        var pan = options.X is null ? (int?)null : AddPercentDelta(camera, UvcCameraProperty.Pan, options.X.Value);
-        var tilt = options.Y is null ? (int?)null : AddPercentDelta(camera, UvcCameraProperty.Tilt, options.Y.Value);
-        if (pan is null && tilt is null) throw new ArgumentException("move-relative requires --x and/or --y.");
-        CameraBackend.SetPanTiltZoom(camera, pan, tilt);
+        if (options.X is null && options.Y is null) throw new ArgumentException("move-relative requires --x and/or --y.");
+        CameraBackend.MoveRelativePanTilt(camera, options.X, options.Y);
         return Ok();
     }
 
