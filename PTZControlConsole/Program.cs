@@ -1,5 +1,8 @@
 using System;
+using System.IO;
 using System.Runtime.Versioning;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Win32;
 using PTZControl.Uvc;
 using PTZControlConsole;
@@ -60,10 +63,30 @@ class Program
                 var options = ParseOptions(args[2..]);
                 return SetPresetName(options, ParsePreset(args, 1));
             }
+            case "clear-preset-name":
+            {
+                var options = ParseOptions(args[2..]);
+                return ClearPresetName(options, ParsePreset(args, 1));
+            }
+            case "get-camera-name":
+            {
+                var options = ParseOptions(args[1..]);
+                return GetCameraName(options);
+            }
             case "set-camera-name":
             {
                 var options = ParseOptions(args[1..]);
                 return SetCameraName(options);
+            }
+            case "clear-camera-name":
+            {
+                var options = ParseOptions(args[1..]);
+                return ClearCameraName(options);
+            }
+            case "config":
+            {
+                var options = ParseOptions(args[1..]);
+                return RunConfig(options);
             }
             case "swap-preset-names":
             {
@@ -138,13 +161,18 @@ class Program
         Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\" | --device-path \"DevicePath\"]");
         Console.WriteLine("  PTZControlConsole list-presets [--camera \"NamePart\" | --device-path \"DevicePath\"]");
         Console.WriteLine("  PTZControlConsole get-preset-name 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole set-preset-name 1..8 --name \"Title\" [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
-        Console.WriteLine("  PTZControlConsole set-camera-name --name \"Title\" --slot 1..3");
+        Console.WriteLine("  PTZControlConsole set-preset-name 1..8 --friendlyname \"Title\" [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole clear-preset-name 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole get-camera-name --slot 1..3");
+        Console.WriteLine("  PTZControlConsole set-camera-name --friendlyname \"Title\" --slot 1..3");
+        Console.WriteLine("  PTZControlConsole clear-camera-name --slot 1..3");
         Console.WriteLine("  PTZControlConsole swap-preset-names --slot-a 1..3 --slot-b 1..3");
+        Console.WriteLine("  PTZControlConsole config --export [json-path]");
+        Console.WriteLine("  PTZControlConsole config --import json-path");
         Console.WriteLine("  PTZControlConsole restore-home --target zoom|move|all [--camera \"NamePart\" | --device-path \"DevicePath\"]");
         Console.WriteLine("  PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera \"NamePart\" | --device-path \"DevicePath\"]");
         Console.WriteLine("  PTZControlConsole restore-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\"]");
-        Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\"] [--name \"Title\"]");
+        Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\" | --device-path \"DevicePath\"] [--friendlyname \"Title\"]");
         Console.WriteLine("  PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\"]");
         Console.WriteLine("  PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera \"NamePart\" | --device-path \"DevicePath\"]");
         Console.WriteLine("  PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera \"NamePart\" | --device-path \"DevicePath\"]");
@@ -167,21 +195,63 @@ class Program
 
     static int SetPresetName(Options options, int preset)
     {
-        if (string.IsNullOrWhiteSpace(options.Name))
-            throw new ArgumentException("set-preset-name requires --name.");
+        if (string.IsNullOrWhiteSpace(options.FriendlyName))
+            throw new ArgumentException("set-preset-name requires --friendlyname.");
 
         var slotIndex = ResolvePresetNameSlot(options);
-        WritePresetName(slotIndex, preset, options.Name);
+        WritePresetName(slotIndex, preset, options.FriendlyName);
         return Ok();
+    }
+
+    static int ClearPresetName(Options options, int preset)
+    {
+        var slotIndex = ResolvePresetNameSlot(options);
+        WritePresetName(slotIndex, preset, "");
+        return Ok();
+    }
+
+    static int GetCameraName(Options options)
+    {
+        var slot = RequireSlot(options.Slot, "--slot");
+        Console.WriteLine(ReadCameraSlotAlias(slot - 1) ?? "");
+        return 0;
     }
 
     static int SetCameraName(Options options)
     {
-        if (string.IsNullOrWhiteSpace(options.Name))
-            throw new ArgumentException("set-camera-name requires --name.");
+        if (string.IsNullOrWhiteSpace(options.FriendlyName))
+            throw new ArgumentException("set-camera-name requires --friendlyname.");
 
         var slot = RequireSlot(options.Slot, "--slot");
-        WriteCameraSlotAlias(slot - 1, options.Name);
+        WriteCameraSlotAlias(slot - 1, options.FriendlyName);
+        return Ok();
+    }
+
+    static int ClearCameraName(Options options)
+    {
+        var slot = RequireSlot(options.Slot, "--slot");
+        WriteCameraSlotAlias(slot - 1, "");
+        return Ok();
+    }
+
+    static int RunConfig(Options options)
+    {
+        if (options.ExportConfig && !string.IsNullOrWhiteSpace(options.ImportConfigPath))
+            throw new ArgumentException("Use either --export or --import, not both.");
+        if (!options.ExportConfig && string.IsNullOrWhiteSpace(options.ImportConfigPath))
+            throw new ArgumentException("config requires --export [json-path] or --import json-path.");
+
+        if (options.ExportConfig)
+        {
+            var json = ExportMetadataConfig();
+            if (string.IsNullOrWhiteSpace(options.ExportConfigPath))
+                Console.WriteLine(json);
+            else
+                File.WriteAllText(options.ExportConfigPath, json);
+            return 0;
+        }
+
+        ImportMetadataConfig(options.ImportConfigPath!);
         return Ok();
     }
 
@@ -219,8 +289,6 @@ class Program
             Console.WriteLine("PTZControl app camera slot: not available");
         }
         Console.WriteLine("Preset storage: camera Logitech extension unit");
-        Console.WriteLine("Preset values: not readable by the known PTZControl Logitech extension-unit API");
-        Console.WriteLine("Preset names: PTZControl app-side tooltip metadata");
 
         for (var preset = 1; preset <= 8; preset++)
         {
@@ -458,7 +526,7 @@ class Program
         if (OperatingSystem.IsWindows())
             return ReadPresetNameFromRegistry(cameraSlotIndex, preset);
 
-        throw PresetNamesNotSupported();
+        return LoadJsonMetadataConfig().GetSlot(cameraSlotIndex + 1)?.GetPresetName(preset);
     }
 
     static void WritePresetName(int cameraSlotIndex, int preset, string name)
@@ -469,7 +537,9 @@ class Program
             return;
         }
 
-        throw PresetNamesNotSupported();
+        var config = LoadJsonMetadataConfig();
+        config.GetOrCreateSlot(cameraSlotIndex + 1).SetPresetName(preset, name);
+        SaveJsonMetadataConfig(config);
     }
 
     static string? ReadCameraSlotAlias(int cameraSlotIndex)
@@ -477,7 +547,7 @@ class Program
         if (OperatingSystem.IsWindows())
             return ReadCameraSlotAliasFromRegistry(cameraSlotIndex);
 
-        throw PresetNamesNotSupported();
+        return LoadJsonMetadataConfig().GetSlot(cameraSlotIndex + 1)?.FriendlyName;
     }
 
     static string? TryReadCameraSlotAlias(int cameraSlotIndex)
@@ -500,7 +570,9 @@ class Program
             return;
         }
 
-        throw PresetNamesNotSupported();
+        var config = LoadJsonMetadataConfig();
+        config.GetOrCreateSlot(cameraSlotIndex + 1).FriendlyName = string.IsNullOrWhiteSpace(name) ? null : name;
+        SaveJsonMetadataConfig(config);
     }
 
     [SupportedOSPlatform("windows")]
@@ -537,12 +609,95 @@ class Program
 
     static void EnsurePresetNamesSupported()
     {
-        if (!OperatingSystem.IsWindows())
-            throw PresetNamesNotSupported();
     }
 
-    static NotSupportedException PresetNamesNotSupported() =>
-        new("PTZControl preset names are stored in the Windows registry and are only supported on Windows.");
+    static string ExportMetadataConfig() =>
+        JsonSerializer.Serialize(ReadCurrentMetadataConfig(), JsonOptions);
+
+    static void ImportMetadataConfig(string path)
+    {
+        var config = JsonSerializer.Deserialize<MetadataConfig>(File.ReadAllText(path), JsonOptions)
+            ?? new MetadataConfig();
+        WriteCurrentMetadataConfig(config);
+    }
+
+    static MetadataConfig ReadCurrentMetadataConfig()
+    {
+        var config = new MetadataConfig();
+        var cameras = CameraBackend.Enumerate();
+        for (var slot = 1; slot <= 3; slot++)
+        {
+            var slotConfig = new CameraSlotMetadata { Slot = slot };
+            if (slot <= cameras.Count)
+            {
+                slotConfig.LastDeviceName = cameras[slot - 1].Name;
+                slotConfig.LastDevicePath = cameras[slot - 1].MonikerString;
+            }
+            slotConfig.FriendlyName = ReadCameraSlotAlias(slot - 1);
+            for (var preset = 1; preset <= 8; preset++)
+            {
+                var presetName = ReadPresetName(slot - 1, preset);
+                if (!string.IsNullOrWhiteSpace(presetName))
+                    slotConfig.PresetNames[preset.ToString()] = presetName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(slotConfig.FriendlyName) || slotConfig.PresetNames.Count > 0)
+                config.Cameras.Add(slotConfig);
+        }
+
+        return config;
+    }
+
+    static void WriteCurrentMetadataConfig(MetadataConfig config)
+    {
+        for (var slot = 1; slot <= 3; slot++)
+        {
+            var slotConfig = config.GetSlot(slot);
+            WriteCameraSlotAlias(slot - 1, slotConfig?.FriendlyName ?? "");
+            for (var preset = 1; preset <= 8; preset++)
+            {
+                var name = slotConfig?.GetPresetName(preset) ?? "";
+                WritePresetName(slot - 1, preset, name);
+            }
+        }
+    }
+
+    static MetadataConfig LoadJsonMetadataConfig()
+    {
+        var path = GetJsonMetadataConfigPath();
+        if (!File.Exists(path))
+            return new MetadataConfig();
+
+        return JsonSerializer.Deserialize<MetadataConfig>(File.ReadAllText(path), JsonOptions)
+            ?? new MetadataConfig();
+    }
+
+    static void SaveJsonMetadataConfig(MetadataConfig config)
+    {
+        var path = GetJsonMetadataConfigPath();
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(directory);
+        File.WriteAllText(path, JsonSerializer.Serialize(config, JsonOptions));
+    }
+
+    static string GetJsonMetadataConfigPath()
+    {
+        if (OperatingSystem.IsMacOS())
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "PTZControl", "ptzcontrol.json");
+
+        var configHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+        if (string.IsNullOrWhiteSpace(configHome))
+            configHome = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
+        return Path.Combine(configHome, "PTZControl", "ptzcontrol.json");
+    }
+
+    static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     static int ScalePercentToValue(string camera, UvcCameraProperty property, int percent)
     {
@@ -609,8 +764,8 @@ class Program
 
     static void WarnUnsupportedPresetName(Options options)
     {
-        if (!string.IsNullOrWhiteSpace(options.Name))
-            Console.Error.WriteLine("Preset names are not supported yet; ignoring --name.");
+        if (!string.IsNullOrWhiteSpace(options.FriendlyName))
+            Console.Error.WriteLine("Preset names are not saved by save-preset; use set-preset-name to store a friendly name.");
     }
 
     static Options ParseOptions(string[] args)
@@ -626,8 +781,8 @@ class Program
                 case "--device-path":
                     options.DevicePath = ReadValue(args, ref i);
                     break;
-                case "--name":
-                    options.Name = ReadValue(args, ref i);
+                case "--friendlyname":
+                    options.FriendlyName = ReadValue(args, ref i);
                     break;
                 case "--x":
                     options.X = int.Parse(ReadValue(args, ref i));
@@ -649,6 +804,17 @@ class Program
                     break;
                 case "--slot-b":
                     options.SlotB = int.Parse(ReadValue(args, ref i));
+                    break;
+                case "--export":
+                    options.ExportConfig = true;
+                    if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                    {
+                        i++;
+                        options.ExportConfigPath = args[i];
+                    }
+                    break;
+                case "--import":
+                    options.ImportConfigPath = ReadValue(args, ref i);
                     break;
                 default:
                     throw new ArgumentException($"Unknown option '{args[i]}'.");
@@ -699,11 +865,55 @@ class Program
         All
     }
 
+    sealed class MetadataConfig
+    {
+        public List<CameraSlotMetadata> Cameras { get; set; } = new();
+
+        public CameraSlotMetadata? GetSlot(int slot) =>
+            Cameras.FirstOrDefault(camera => camera.Slot == slot);
+
+        public CameraSlotMetadata GetOrCreateSlot(int slot)
+        {
+            var slotConfig = GetSlot(slot);
+            if (slotConfig is not null)
+                return slotConfig;
+
+            slotConfig = new CameraSlotMetadata { Slot = slot };
+            Cameras.Add(slotConfig);
+            Cameras.Sort((a, b) => a.Slot.CompareTo(b.Slot));
+            return slotConfig;
+        }
+    }
+
+    sealed class CameraSlotMetadata
+    {
+        public int Slot { get; set; }
+        public string? FriendlyName { get; set; }
+        public string? LastDeviceName { get; set; }
+        public string? LastDevicePath { get; set; }
+        public Dictionary<string, string> PresetNames { get; set; } = new();
+
+        public string? GetPresetName(int preset) =>
+            PresetNames.TryGetValue(preset.ToString(), out var name) ? name : null;
+
+        public void SetPresetName(int preset, string name)
+        {
+            var key = preset.ToString();
+            if (string.IsNullOrWhiteSpace(name))
+                PresetNames.Remove(key);
+            else
+                PresetNames[key] = name;
+        }
+    }
+
     sealed class Options
     {
         public string? Camera { get; set; }
         public string? DevicePath { get; set; }
-        public string? Name { get; set; }
+        public string? FriendlyName { get; set; }
+        public bool ExportConfig { get; set; }
+        public string? ExportConfigPath { get; set; }
+        public string? ImportConfigPath { get; set; }
         public ValueMode? Mode { get; set; }
         public Target? Target { get; set; }
         public int? Slot { get; set; }
@@ -714,7 +924,10 @@ class Program
         public bool HasAnyValue =>
             !string.IsNullOrWhiteSpace(Camera) ||
             !string.IsNullOrWhiteSpace(DevicePath) ||
-            !string.IsNullOrWhiteSpace(Name) ||
+            !string.IsNullOrWhiteSpace(FriendlyName) ||
+            ExportConfig ||
+            !string.IsNullOrWhiteSpace(ExportConfigPath) ||
+            !string.IsNullOrWhiteSpace(ImportConfigPath) ||
             Mode.HasValue ||
             Target.HasValue ||
             Slot.HasValue ||

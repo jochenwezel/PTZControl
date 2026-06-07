@@ -145,6 +145,17 @@ jobs:
         with:
           name: PTZControlConsole-linux-x64-beta
           path: PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta
+
+      - name: Add console helper files
+        run: |
+          mkdir -p PTZControlConsole-${{ env.TAG_NAME }}-win-x64/scripts
+          mkdir -p PTZControlConsole-${{ env.TAG_NAME }}-win-x86/scripts
+          mkdir -p PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta/scripts
+          cp scripts/test-console-camera-windows.ps1 PTZControlConsole-${{ env.TAG_NAME }}-win-x64/scripts/
+          cp scripts/test-console-camera-windows.ps1 PTZControlConsole-${{ env.TAG_NAME }}-win-x86/scripts/
+          cp scripts/test-console-camera-linux.sh PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta/scripts/
+          chmod +x PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta/scripts/test-console-camera-linux.sh
+          cp install-linux.md PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta/
   
       - name: Package Files
         run: |
