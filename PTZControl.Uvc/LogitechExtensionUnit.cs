@@ -59,9 +59,11 @@ namespace PTZControl.Uvc
 
         private static void SetPeripheralControl(string cameraNamePart, int propertyId, int value)
         {
-            var ksControl = GetKsControl(cameraNamePart);
-            var peripheralNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuPeripheralControl, "Logitech peripheral control");
-            SetExtensionUnitProperty(ksControl, LogitechXuPeripheralControl, peripheralNodeId, propertyId, value);
+            WithKsControl(cameraNamePart, ksControl =>
+            {
+                var peripheralNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuPeripheralControl, "Logitech peripheral control");
+                SetExtensionUnitProperty(ksControl, LogitechXuPeripheralControl, peripheralNodeId, propertyId, value);
+            });
         }
 
         private static int CreatePanTiltRelativeValue(int xDirection, int yDirection)
@@ -81,11 +83,13 @@ namespace PTZControl.Uvc
 
         private static void GotoHome(string cameraNamePart)
         {
-            var ksControl = GetKsControl(cameraNamePart);
-            var videoPipeNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuVideoPipeControl, "Logitech video pipe control");
-            var peripheralNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuPeripheralControl, "Logitech peripheral control");
-            SetExtensionUnitProperty(ksControl, LogitechXuVideoPipeControl, videoPipeNodeId, XuVideoFwZoomControl, 0);
-            SetExtensionUnitProperty(ksControl, LogitechXuPeripheralControl, peripheralNodeId, XuPeripheralControlPanTiltModeControl, 3);
+            WithKsControl(cameraNamePart, ksControl =>
+            {
+                var videoPipeNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuVideoPipeControl, "Logitech video pipe control");
+                var peripheralNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuPeripheralControl, "Logitech peripheral control");
+                SetExtensionUnitProperty(ksControl, LogitechXuVideoPipeControl, videoPipeNodeId, XuVideoFwZoomControl, 0);
+                SetExtensionUnitProperty(ksControl, LogitechXuPeripheralControl, peripheralNodeId, XuPeripheralControlPanTiltModeControl, 3);
+            });
         }
 
         private static void SetExtensionUnitProperty(IKsControl ksControl, Guid propertySet, int nodeId, int propertyId, int value)
@@ -124,6 +128,25 @@ namespace PTZControl.Uvc
             }
             return control as IKsControl
                 ?? throw new NotSupportedException("IKsControl wird von dieser Kamera nicht unterstützt.");
+        }
+
+        private static void WithKsControl(string cameraNamePart, Action<IKsControl> action)
+        {
+            var ksControl = GetKsControl(cameraNamePart);
+            try
+            {
+                action(ksControl);
+            }
+            finally
+            {
+                ReleaseComObject(ksControl);
+            }
+        }
+
+        private static void ReleaseComObject(object? value)
+        {
+            if (OperatingSystem.IsWindows() && value is not null && Marshal.IsComObject(value))
+                Marshal.FinalReleaseComObject(value);
         }
 
         private static int FindExtensionUnitNodeId(IKsControl ksControl, Guid propertySet, string displayName)

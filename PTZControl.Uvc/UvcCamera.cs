@@ -49,17 +49,22 @@ namespace PTZControl.Uvc
 
         public static void SetPanTiltZoom(string cam, int? pan = null, int? tilt = null, int? zoom = null)
         {
-            var ctl = GetControl(cam, out var src, out var graph);
-            void Set(CameraControlProperty prop, int value)
+            WithControl(cam, ctl =>
             {
-                ctl.GetRange(prop, out int min, out int max, out int step, out int def, out CameraControlFlags flags);
-                value = Math.Clamp(value, min, max);
-                int hr = ctl.Set(prop, value, CameraControlFlags.Manual);
-                if (hr != 0) Marshal.ThrowExceptionForHR(hr);
-            }
-            if (pan.HasValue)  Set(CameraControlProperty.Pan,  pan.Value);
-            if (tilt.HasValue) Set(CameraControlProperty.Tilt, tilt.Value);
-            if (zoom.HasValue) Set(CameraControlProperty.Zoom, zoom.Value);
+                void Set(CameraControlProperty prop, int value)
+                {
+                    var hr = ctl.GetRange(prop, out int min, out int max, out _, out _, out _);
+                    if (hr != 0) Marshal.ThrowExceptionForHR(hr);
+
+                    value = Math.Clamp(value, min, max);
+                    hr = ctl.Set(prop, value, CameraControlFlags.Manual);
+                    if (hr != 0) Marshal.ThrowExceptionForHR(hr);
+                }
+
+                if (pan.HasValue)  Set(CameraControlProperty.Pan,  pan.Value);
+                if (tilt.HasValue) Set(CameraControlProperty.Tilt, tilt.Value);
+                if (zoom.HasValue) Set(CameraControlProperty.Zoom, zoom.Value);
+            });
         }
 
         public static void MoveRelativePanTilt(string cam, int? x = null, int? y = null) =>
@@ -67,7 +72,6 @@ namespace PTZControl.Uvc
 
         public static (int min, int max, int step, int def) GetRange(string cam, CameraProperty prop)
         {
-            var ctl = GetControl(cam, out var src, out var graph);
             var p = prop switch
             {
                 CameraProperty.Pan => CameraControlProperty.Pan,
@@ -75,13 +79,17 @@ namespace PTZControl.Uvc
                 CameraProperty.Zoom => CameraControlProperty.Zoom,
                 _ => throw new NotSupportedException(prop.ToString())
             };
-            ctl.GetRange(p, out int min, out int max, out int step, out int def, out _);
-            return (min, max, step, def);
+
+            return WithControl(cam, ctl =>
+            {
+                var hr = ctl.GetRange(p, out int min, out int max, out int step, out int def, out _);
+                if (hr != 0) Marshal.ThrowExceptionForHR(hr);
+                return (min, max, step, def);
+            });
         }
 
         public static int GetValue(string cam, CameraProperty prop)
         {
-            var ctl = GetControl(cam, out var src, out var graph);
             var p = prop switch
             {
                 CameraProperty.Pan => CameraControlProperty.Pan,
@@ -89,9 +97,13 @@ namespace PTZControl.Uvc
                 CameraProperty.Zoom => CameraControlProperty.Zoom,
                 _ => throw new NotSupportedException(prop.ToString())
             };
-            int hr = ctl.Get(p, out int value, out _);
-            if (hr != 0) Marshal.ThrowExceptionForHR(hr);
-            return value;
+
+            return WithControl(cam, ctl =>
+            {
+                int hr = ctl.Get(p, out int value, out _);
+                if (hr != 0) Marshal.ThrowExceptionForHR(hr);
+                return value;
+            });
         }
 
         public static void SavePreset(string cam, int presetNumber) =>
@@ -99,5 +111,32 @@ namespace PTZControl.Uvc
 
         public static void RestorePreset(string cam, int presetNumber) =>
             LogitechExtensionUnit.RestorePreset(cam, presetNumber);
+
+        private static void WithControl(string cameraNamePart, Action<IAMCameraControl> action) =>
+            WithControl<object?>(cameraNamePart, ctl =>
+            {
+                action(ctl);
+                return null;
+            });
+
+        private static T WithControl<T>(string cameraNamePart, Func<IAMCameraControl, T> action)
+        {
+            var ctl = GetControl(cameraNamePart, out var src, out var graph);
+            try
+            {
+                return action(ctl);
+            }
+            finally
+            {
+                ReleaseComObject(src);
+                ReleaseComObject(graph);
+            }
+        }
+
+        private static void ReleaseComObject(object? value)
+        {
+            if (OperatingSystem.IsWindows() && value is not null && Marshal.IsComObject(value))
+                Marshal.FinalReleaseComObject(value);
+        }
     }
 }

@@ -59,22 +59,22 @@ class Program
             case "zoom-absolute":
             {
                 var options = ParseOptions(args[2..]);
-                return SetAbsoluteZoom(ResolveCamera(options), ParsePercent(args, 1));
+                return SetAbsoluteZoom(ResolveCamera(options), ParseValue(args, 1), RequireMode(options, "zoom-absolute"));
             }
             case "zoom-relative":
             {
                 var options = ParseOptions(args[2..]);
-                return SetRelativeZoom(ResolveCamera(options), ParsePercent(args, 1));
+                return SetRelativeZoom(ResolveCamera(options), ParseValue(args, 1), RequireMode(options, "zoom-relative"));
             }
             case "move-absolute":
             {
                 var options = ParseOptions(args[1..]);
-                return MoveAbsolute(ResolveCamera(options), options);
+                return MoveAbsolute(ResolveCamera(options), options, RequireMode(options, "move-absolute"));
             }
             case "move-relative":
             {
                 var options = ParseOptions(args[1..]);
-                return MoveRelative(ResolveCamera(options), options);
+                return MoveRelative(ResolveCamera(options), options, RequireMode(options, "move-relative"));
             }
             default:
                 throw new ArgumentException($"Unknown command '{args[0]}'.");
@@ -99,10 +99,10 @@ class Program
         Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole restore-preset 0..8 [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\"] [--name \"Title\"]");
-        Console.WriteLine("  PTZControlConsole zoom-absolute PERCENT [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole zoom-relative PERCENT_DELTA [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole move-absolute [--x PERCENT] [--y PERCENT] [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole move-relative [--x PERCENT_DELTA] [--y PERCENT_DELTA] [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole move-absolute --mode percent|raw [--x VALUE] [--y VALUE] [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole move-relative --mode percent|raw [--x VALUE_DELTA] [--y VALUE_DELTA] [--camera \"NamePart\"]");
     }
 
     static int ListDevices()
@@ -133,13 +133,28 @@ class Program
         try
         {
             var range = CameraBackend.GetRange(camera, property);
-            var current = CameraBackend.GetValue(camera, property);
             Console.WriteLine($"* {label} raw min/max: {range.min}/{range.max}");
-            Console.WriteLine($"  {label} raw current/default/step: {current}/{range.def}/{range.step}");
+            Console.WriteLine($"  {label} raw default/step: {range.def}/{range.step}");
+            PrintCurrentPropertyValue(label, camera, property);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"* {label}: not available ({GetErrorMessage(ex)})");
+            if (ex.InnerException is not null)
+                Console.WriteLine($"  Cause: {GetErrorMessage(ex.InnerException)}");
+        }
+    }
+
+    static void PrintCurrentPropertyValue(string label, string camera, UvcCameraProperty property)
+    {
+        try
+        {
+            var current = CameraBackend.GetValue(camera, property);
+            Console.WriteLine($"  {label} raw current: {current}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  {label} raw current: not available ({GetErrorMessage(ex)})");
             if (ex.InnerException is not null)
                 Console.WriteLine($"  Cause: {GetErrorMessage(ex.InnerException)}");
         }
@@ -151,33 +166,46 @@ class Program
             throw new ArgumentException($"{command} does not accept options.");
     }
 
-    static int SetAbsoluteZoom(string camera, int percent)
+    static int SetAbsoluteZoom(string camera, int value, ValueMode mode)
     {
-        var zoom = ScalePercentToValue(camera, UvcCameraProperty.Zoom, percent);
+        var zoom = mode == ValueMode.Percent
+            ? ScalePercentToValue(camera, UvcCameraProperty.Zoom, value)
+            : ClampRawValue(camera, UvcCameraProperty.Zoom, value);
         CameraBackend.SetPanTiltZoom(camera, zoom: zoom);
         return Ok();
     }
 
-    static int SetRelativeZoom(string camera, int deltaPercent)
+    static int SetRelativeZoom(string camera, int delta, ValueMode mode)
     {
-        var value = AddPercentDelta(camera, UvcCameraProperty.Zoom, deltaPercent);
+        var value = mode == ValueMode.Percent
+            ? AddPercentDelta(camera, UvcCameraProperty.Zoom, delta)
+            : AddRawDelta(camera, UvcCameraProperty.Zoom, delta);
         CameraBackend.SetPanTiltZoom(camera, zoom: value);
         return Ok();
     }
 
-    static int MoveAbsolute(string camera, Options options)
+    static int MoveAbsolute(string camera, Options options, ValueMode mode)
     {
-        var pan = options.X is null ? (int?)null : ScalePercentToValue(camera, UvcCameraProperty.Pan, options.X.Value);
-        var tilt = options.Y is null ? (int?)null : ScalePercentToValue(camera, UvcCameraProperty.Tilt, options.Y.Value);
+        var pan = options.X is null ? (int?)null : ConvertAbsoluteValue(camera, UvcCameraProperty.Pan, options.X.Value, mode);
+        var tilt = options.Y is null ? (int?)null : ConvertAbsoluteValue(camera, UvcCameraProperty.Tilt, options.Y.Value, mode);
         if (pan is null && tilt is null) throw new ArgumentException("move-absolute requires --x and/or --y.");
         CameraBackend.SetPanTiltZoom(camera, pan, tilt);
         return Ok();
     }
 
-    static int MoveRelative(string camera, Options options)
+    static int MoveRelative(string camera, Options options, ValueMode mode)
     {
         if (options.X is null && options.Y is null) throw new ArgumentException("move-relative requires --x and/or --y.");
-        CameraBackend.MoveRelativePanTilt(camera, options.X, options.Y);
+        if (mode == ValueMode.Percent)
+        {
+            CameraBackend.MoveRelativePanTilt(camera, options.X, options.Y);
+        }
+        else
+        {
+            var pan = options.X is null ? (int?)null : AddRawDelta(camera, UvcCameraProperty.Pan, options.X.Value);
+            var tilt = options.Y is null ? (int?)null : AddRawDelta(camera, UvcCameraProperty.Tilt, options.Y.Value);
+            CameraBackend.SetPanTiltZoom(camera, pan, tilt);
+        }
         return Ok();
     }
 
@@ -213,6 +241,24 @@ class Program
         return Math.Clamp(current + delta, range.min, range.max);
     }
 
+    static int ClampRawValue(string camera, UvcCameraProperty property, int value)
+    {
+        var range = CameraBackend.GetRange(camera, property);
+        return Math.Clamp(value, range.min, range.max);
+    }
+
+    static int AddRawDelta(string camera, UvcCameraProperty property, int delta)
+    {
+        var range = CameraBackend.GetRange(camera, property);
+        var current = CameraBackend.GetValue(camera, property);
+        return Math.Clamp(current + delta, range.min, range.max);
+    }
+
+    static int ConvertAbsoluteValue(string camera, UvcCameraProperty property, int value, ValueMode mode) =>
+        mode == ValueMode.Percent
+            ? ScalePercentToValue(camera, property, value)
+            : ClampRawValue(camera, property, value);
+
     static int ParsePreset(string[] args, int index)
     {
         if (args.Length <= index || !int.TryParse(args[index], out var preset))
@@ -220,11 +266,18 @@ class Program
         return preset;
     }
 
-    static int ParsePercent(string[] args, int index)
+    static int ParseValue(string[] args, int index)
     {
-        if (args.Length <= index || !int.TryParse(args[index], out var percent))
-            throw new ArgumentException("Command requires a numeric percent value.");
-        return percent;
+        if (args.Length <= index || !int.TryParse(args[index], out var value))
+            throw new ArgumentException("Command requires a numeric value.");
+        return value;
+    }
+
+    static ValueMode RequireMode(Options options, string command)
+    {
+        if (options.Mode is null)
+            throw new ArgumentException($"{command} requires --mode percent or --mode raw.");
+        return options.Mode.Value;
     }
 
     static void WarnUnsupportedPresetName(Options options)
@@ -252,6 +305,9 @@ class Program
                 case "--y":
                     options.Y = int.Parse(ReadValue(args, ref i));
                     break;
+                case "--mode":
+                    options.Mode = ParseMode(ReadValue(args, ref i));
+                    break;
                 default:
                     throw new ArgumentException($"Unknown option '{args[i]}'.");
             }
@@ -267,15 +323,31 @@ class Program
         return args[index];
     }
 
+    static ValueMode ParseMode(string value) =>
+        value.ToLowerInvariant() switch
+        {
+            "percent" => ValueMode.Percent,
+            "raw" => ValueMode.Raw,
+            _ => throw new ArgumentException("--mode must be 'percent' or 'raw'.")
+        };
+
+    enum ValueMode
+    {
+        Percent,
+        Raw
+    }
+
     sealed class Options
     {
         public string? Camera { get; set; }
         public string? Name { get; set; }
+        public ValueMode? Mode { get; set; }
         public int? X { get; set; }
         public int? Y { get; set; }
         public bool HasAnyValue =>
             !string.IsNullOrWhiteSpace(Camera) ||
             !string.IsNullOrWhiteSpace(Name) ||
+            Mode.HasValue ||
             X.HasValue ||
             Y.HasValue;
     }
