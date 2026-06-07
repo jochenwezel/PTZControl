@@ -50,6 +50,11 @@ class Program
                 var options = ParseOptions(args[1..]);
                 return ListPresets(ResolveCamera(options));
             }
+            case "get-preset-name":
+            {
+                var options = ParseOptions(args[2..]);
+                return GetPresetName(options, ParsePreset(args, 1));
+            }
             case "set-preset-name":
             {
                 var options = ParseOptions(args[2..]);
@@ -127,6 +132,7 @@ class Program
         Console.WriteLine("  PTZControlConsole list-devices");
         Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole list-presets [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole get-preset-name 1..8 [--camera \"NamePart\" | --slot 1..3]");
         Console.WriteLine("  PTZControlConsole set-preset-name 1..8 --name \"Title\" [--camera \"NamePart\" | --slot 1..3]");
         Console.WriteLine("  PTZControlConsole swap-preset-names --slot-a 1..3 --slot-b 1..3");
         Console.WriteLine("  PTZControlConsole restore-home --target zoom|move|all [--camera \"NamePart\"]");
@@ -143,6 +149,13 @@ class Program
     {
         foreach (var cam in CameraBackend.Enumerate())
             Console.WriteLine(string.IsNullOrWhiteSpace(cam.MonikerString) ? cam.Name : $"{cam.Name}\t{cam.MonikerString}");
+        return 0;
+    }
+
+    static int GetPresetName(Options options, int preset)
+    {
+        var slotIndex = ResolvePresetNameSlot(options);
+        Console.WriteLine(ReadPresetName(slotIndex, preset) ?? "");
         return 0;
     }
 
@@ -211,8 +224,6 @@ class Program
         Console.WriteLine("Home restore targets: zoom, move, all");
         Console.WriteLine("Default restore targets: zoom, move, move-x, move-y, all");
         Console.WriteLine("Preset range: restore 1..8, save 1..8");
-        Console.WriteLine("Preset values: not readable by the known PTZControl Logitech extension-unit API");
-        Console.WriteLine("Preset names: PTZControl app-side tooltip metadata, per camera slot");
         return 0;
     }
 
