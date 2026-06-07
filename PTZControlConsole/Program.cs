@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.Versioning;
+using Microsoft.Win32;
 using PTZControl.Uvc;
 using PTZControlConsole;
 using UvcCameraProperty = PTZControl.Uvc.CameraProperty;
@@ -42,6 +44,21 @@ class Program
             {
                 var options = ParseOptions(args[1..]);
                 return PrintCameraDeviceInfo(ResolveCamera(options));
+            }
+            case "list-presets":
+            {
+                var options = ParseOptions(args[1..]);
+                return ListPresets(ResolveCamera(options));
+            }
+            case "set-preset-name":
+            {
+                var options = ParseOptions(args[2..]);
+                return SetPresetName(options, ParsePreset(args, 1));
+            }
+            case "swap-preset-names":
+            {
+                var options = ParseOptions(args[1..]);
+                return SwapPresetNames(RequireSlot(options.SlotA, "--slot-a"), RequireSlot(options.SlotB, "--slot-b"));
             }
             case "restore-home":
             {
@@ -109,6 +126,9 @@ class Program
         Console.WriteLine("Usage:");
         Console.WriteLine("  PTZControlConsole list-devices");
         Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole list-presets [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole set-preset-name 1..8 --name \"Title\" [--camera \"NamePart\" | --slot 1..3]");
+        Console.WriteLine("  PTZControlConsole swap-preset-names --slot-a 1..3 --slot-b 1..3");
         Console.WriteLine("  PTZControlConsole restore-home --target zoom|move|all [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole restore-preset 1..8 [--camera \"NamePart\"]");
@@ -123,6 +143,56 @@ class Program
     {
         foreach (var cam in CameraBackend.Enumerate())
             Console.WriteLine(string.IsNullOrWhiteSpace(cam.MonikerString) ? cam.Name : $"{cam.Name}\t{cam.MonikerString}");
+        return 0;
+    }
+
+    static int SetPresetName(Options options, int preset)
+    {
+        if (string.IsNullOrWhiteSpace(options.Name))
+            throw new ArgumentException("set-preset-name requires --name.");
+
+        var slotIndex = ResolvePresetNameSlot(options);
+        WritePresetName(slotIndex, preset, options.Name);
+        return Ok();
+    }
+
+    static int SwapPresetNames(int slotA, int slotB)
+    {
+        if (slotA == slotB)
+            throw new ArgumentException("--slot-a and --slot-b must be different.");
+
+        EnsurePresetNamesSupported();
+
+        for (var preset = 1; preset <= 8; preset++)
+        {
+            var nameA = ReadPresetName(slotA - 1, preset);
+            var nameB = ReadPresetName(slotB - 1, preset);
+            WritePresetName(slotA - 1, preset, nameB ?? "");
+            WritePresetName(slotB - 1, preset, nameA ?? "");
+        }
+
+        return Ok();
+    }
+
+    static int ListPresets(string camera)
+    {
+        var (cameraName, slotIndex) = ResolveCameraSlot(camera);
+        Console.WriteLine($"Camera Device Name: {cameraName}");
+        if (slotIndex is not null)
+            Console.WriteLine($"PTZControl app camera slot: {slotIndex.Value + 1}");
+        else
+            Console.WriteLine("PTZControl app camera slot: not available");
+        Console.WriteLine("Preset storage: camera Logitech extension unit");
+        Console.WriteLine("Preset values: not readable by the known PTZControl Logitech extension-unit API");
+        Console.WriteLine("Preset names: PTZControl app-side tooltip metadata");
+
+        for (var preset = 1; preset <= 8; preset++)
+        {
+            var name = slotIndex is null ? null : ReadPresetName(slotIndex.Value, preset);
+            var displayName = string.IsNullOrWhiteSpace(name) ? "(none)" : name;
+            Console.WriteLine($"* Preset {preset}: name={displayName}; values=not readable");
+        }
+
         return 0;
     }
 
@@ -141,6 +211,8 @@ class Program
         Console.WriteLine("Home restore targets: zoom, move, all");
         Console.WriteLine("Default restore targets: zoom, move, move-x, move-y, all");
         Console.WriteLine("Preset range: restore 1..8, save 1..8");
+        Console.WriteLine("Preset values: not readable by the known PTZControl Logitech extension-unit API");
+        Console.WriteLine("Preset names: PTZControl app-side tooltip metadata, per camera slot");
         return 0;
     }
 
@@ -274,6 +346,84 @@ class Program
         return cameras[0].Name;
     }
 
+    static (string cameraName, int? slotIndex) ResolveCameraSlot(string camera)
+    {
+        var cameras = CameraBackend.Enumerate();
+        for (var i = 0; i < cameras.Count; i++)
+        {
+            if (cameras[i].Name.Contains(camera, StringComparison.OrdinalIgnoreCase))
+                return (cameras[i].Name, i < 3 ? i : null);
+        }
+
+        return (camera, null);
+    }
+
+    static int ResolvePresetNameSlot(Options options)
+    {
+        if (options.Slot.HasValue && !string.IsNullOrWhiteSpace(options.Camera))
+            throw new ArgumentException("Use either --slot or --camera, not both.");
+
+        if (options.Slot.HasValue)
+            return RequireSlot(options.Slot, "--slot") - 1;
+
+        var camera = ResolveCamera(options);
+        var (_, slotIndex) = ResolveCameraSlot(camera);
+        return slotIndex ?? throw new InvalidOperationException($"Camera '{camera}' is not mapped to a PTZControl app slot 1..3.");
+    }
+
+    static int RequireSlot(int? slot, string optionName)
+    {
+        if (!slot.HasValue)
+            throw new ArgumentException($"{optionName} is required.");
+        if (slot.Value < 1 || slot.Value > 3)
+            throw new ArgumentOutOfRangeException(optionName, "Slot must be between 1 and 3.");
+        return slot.Value;
+    }
+
+    static string? ReadPresetName(int cameraSlotIndex, int preset)
+    {
+        if (OperatingSystem.IsWindows())
+            return ReadPresetNameFromRegistry(cameraSlotIndex, preset);
+
+        throw PresetNamesNotSupported();
+    }
+
+    static void WritePresetName(int cameraSlotIndex, int preset, string name)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            WritePresetNameToRegistry(cameraSlotIndex, preset, name);
+            return;
+        }
+
+        throw PresetNamesNotSupported();
+    }
+
+    [SupportedOSPlatform("windows")]
+    static string? ReadPresetNameFromRegistry(int cameraSlotIndex, int preset)
+    {
+        var valueName = $"Tooltip{preset + cameraSlotIndex * 100}";
+        using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\MRi-Software\PTZControl\Window");
+        return key?.GetValue(valueName) as string;
+    }
+
+    [SupportedOSPlatform("windows")]
+    static void WritePresetNameToRegistry(int cameraSlotIndex, int preset, string name)
+    {
+        var valueName = $"Tooltip{preset + cameraSlotIndex * 100}";
+        using var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\MRi-Software\PTZControl\Window");
+        key.SetValue(valueName, name, RegistryValueKind.String);
+    }
+
+    static void EnsurePresetNamesSupported()
+    {
+        if (!OperatingSystem.IsWindows())
+            throw PresetNamesNotSupported();
+    }
+
+    static NotSupportedException PresetNamesNotSupported() =>
+        new("PTZControl preset names are stored in the Windows registry and are only supported on Windows.");
+
     static int ScalePercentToValue(string camera, UvcCameraProperty property, int percent)
     {
         percent = Math.Clamp(percent, 0, 100);
@@ -368,6 +518,15 @@ class Program
                 case "--target":
                     options.Target = ParseTarget(ReadValue(args, ref i));
                     break;
+                case "--slot":
+                    options.Slot = int.Parse(ReadValue(args, ref i));
+                    break;
+                case "--slot-a":
+                    options.SlotA = int.Parse(ReadValue(args, ref i));
+                    break;
+                case "--slot-b":
+                    options.SlotB = int.Parse(ReadValue(args, ref i));
+                    break;
                 default:
                     throw new ArgumentException($"Unknown option '{args[i]}'.");
             }
@@ -423,6 +582,9 @@ class Program
         public string? Name { get; set; }
         public ValueMode? Mode { get; set; }
         public Target? Target { get; set; }
+        public int? Slot { get; set; }
+        public int? SlotA { get; set; }
+        public int? SlotB { get; set; }
         public int? X { get; set; }
         public int? Y { get; set; }
         public bool HasAnyValue =>
@@ -430,6 +592,9 @@ class Program
             !string.IsNullOrWhiteSpace(Name) ||
             Mode.HasValue ||
             Target.HasValue ||
+            Slot.HasValue ||
+            SlotA.HasValue ||
+            SlotB.HasValue ||
             X.HasValue ||
             Y.HasValue;
     }
