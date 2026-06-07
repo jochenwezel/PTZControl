@@ -35,16 +35,18 @@ namespace PTZControl.Uvc
 
         public static void RestorePreset(string cameraNamePart, int presetNumber)
         {
-            if (presetNumber < 0 || presetNumber > NumPresets)
-                throw new ArgumentOutOfRangeException(nameof(presetNumber), $"Preset number must be between 0 and {NumPresets}.");
-
-            if (presetNumber == 0)
-            {
-                GotoHome(cameraNamePart);
-                return;
-            }
-
             SetPresetMode(cameraNamePart, PresetNumberToModeValue(presetNumber, 12));
+        }
+
+        public static void RestoreHome(string cameraNamePart, bool zoom, bool move)
+        {
+            if (!zoom && !move)
+                throw new ArgumentException("restore-home requires at least one target.");
+
+            if (zoom)
+                RestoreHomeZoom(cameraNamePart);
+            if (move)
+                RestoreHomeMove(cameraNamePart);
         }
 
         private static int PresetNumberToModeValue(int presetNumber, int baseValue)
@@ -81,13 +83,20 @@ namespace PTZControl.Uvc
                 _ => 0
             };
 
-        private static void GotoHome(string cameraNamePart)
+        private static void RestoreHomeZoom(string cameraNamePart)
         {
             WithKsControl(cameraNamePart, ksControl =>
             {
                 var videoPipeNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuVideoPipeControl, "Logitech video pipe control");
-                var peripheralNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuPeripheralControl, "Logitech peripheral control");
                 SetExtensionUnitProperty(ksControl, LogitechXuVideoPipeControl, videoPipeNodeId, XuVideoFwZoomControl, 0);
+            });
+        }
+
+        private static void RestoreHomeMove(string cameraNamePart)
+        {
+            WithKsControl(cameraNamePart, ksControl =>
+            {
+                var peripheralNodeId = FindExtensionUnitNodeId(ksControl, LogitechXuPeripheralControl, "Logitech peripheral control");
                 SetExtensionUnitProperty(ksControl, LogitechXuPeripheralControl, peripheralNodeId, XuPeripheralControlPanTiltModeControl, 3);
             });
         }

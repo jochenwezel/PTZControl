@@ -43,6 +43,18 @@ class Program
                 var options = ParseOptions(args[1..]);
                 return PrintCameraDeviceInfo(ResolveCamera(options));
             }
+            case "restore-home":
+            {
+                var options = ParseOptions(args[1..]);
+                var target = RequireTarget(options, "restore-home");
+                return RestoreHome(ResolveCamera(options), target);
+            }
+            case "restore-default":
+            {
+                var options = ParseOptions(args[1..]);
+                var target = RequireTarget(options, "restore-default");
+                return RestoreDefault(ResolveCamera(options), target);
+            }
             case "restore-preset":
             {
                 var options = ParseOptions(args[2..]);
@@ -97,7 +109,9 @@ class Program
         Console.WriteLine("Usage:");
         Console.WriteLine("  PTZControlConsole list-devices");
         Console.WriteLine("  PTZControlConsole cam-device-info [--camera \"NamePart\"]");
-        Console.WriteLine("  PTZControlConsole restore-preset 0..8 [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole restore-home --target zoom|move|all [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole restore-default --target zoom|move|move-x|move-y|all [--camera \"NamePart\"]");
+        Console.WriteLine("  PTZControlConsole restore-preset 1..8 [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole save-preset 1..8 [--camera \"NamePart\"] [--name \"Title\"]");
         Console.WriteLine("  PTZControlConsole zoom-absolute VALUE --mode percent|raw [--camera \"NamePart\"]");
         Console.WriteLine("  PTZControlConsole zoom-relative VALUE_DELTA --mode percent|raw [--camera \"NamePart\"]");
@@ -124,7 +138,9 @@ class Program
         PrintPropertyInfo("Zoom", camera, UvcCameraProperty.Zoom);
         PrintPropertyInfo("Move X axis", camera, UvcCameraProperty.Pan);
         PrintPropertyInfo("Move Y axis", camera, UvcCameraProperty.Tilt);
-        Console.WriteLine("Preset range: restore 0..8, save 1..8");
+        Console.WriteLine("Home restore targets: zoom, move, all");
+        Console.WriteLine("Default restore targets: zoom, move, move-x, move-y, all");
+        Console.WriteLine("Preset range: restore 1..8, save 1..8");
         return 0;
     }
 
@@ -134,7 +150,8 @@ class Program
         {
             var range = CameraBackend.GetRange(camera, property);
             Console.WriteLine($"* {label} raw min/max: {range.min}/{range.max}");
-            Console.WriteLine($"  {label} raw default/step: {range.def}/{range.step}");
+            Console.WriteLine($"  {label} raw default: {range.def}");
+            Console.WriteLine($"  {label} raw step: {range.step}");
             PrintCurrentPropertyValue(label, camera, property);
         }
         catch (Exception ex)
@@ -164,6 +181,37 @@ class Program
     {
         if (options.HasAnyValue)
             throw new ArgumentException($"{command} does not accept options.");
+    }
+
+    static int RestoreHome(string camera, Target target)
+    {
+        var (zoom, move) = target switch
+        {
+            Target.Zoom => (true, false),
+            Target.Move => (false, true),
+            Target.All => (true, true),
+            Target.MoveX or Target.MoveY => throw new ArgumentException("restore-home supports --target zoom, move, or all. Separate move-x/move-y home restore is not supported by the Logitech home command."),
+            _ => throw new ArgumentOutOfRangeException(nameof(target))
+        };
+
+        CameraBackend.RestoreHome(camera, zoom, move);
+        return Ok();
+    }
+
+    static int RestoreDefault(string camera, Target target)
+    {
+        var (zoom, pan, tilt) = target switch
+        {
+            Target.Zoom => (true, false, false),
+            Target.Move => (false, true, true),
+            Target.MoveX => (false, true, false),
+            Target.MoveY => (false, false, true),
+            Target.All => (true, true, true),
+            _ => throw new ArgumentOutOfRangeException(nameof(target))
+        };
+
+        CameraBackend.RestoreDefault(camera, zoom, pan, tilt);
+        return Ok();
     }
 
     static int SetAbsoluteZoom(string camera, int value, ValueMode mode)
@@ -263,6 +311,8 @@ class Program
     {
         if (args.Length <= index || !int.TryParse(args[index], out var preset))
             throw new ArgumentException("Preset command requires a preset number.");
+        if (preset < 1 || preset > 8)
+            throw new ArgumentOutOfRangeException(nameof(preset), "Preset number must be between 1 and 8. Use restore-home for the Logitech home position.");
         return preset;
     }
 
@@ -278,6 +328,13 @@ class Program
         if (options.Mode is null)
             throw new ArgumentException($"{command} requires --mode percent or --mode raw.");
         return options.Mode.Value;
+    }
+
+    static Target RequireTarget(Options options, string command)
+    {
+        if (options.Target is null)
+            throw new ArgumentException($"{command} requires --target.");
+        return options.Target.Value;
     }
 
     static void WarnUnsupportedPresetName(Options options)
@@ -308,6 +365,9 @@ class Program
                 case "--mode":
                     options.Mode = ParseMode(ReadValue(args, ref i));
                     break;
+                case "--target":
+                    options.Target = ParseTarget(ReadValue(args, ref i));
+                    break;
                 default:
                     throw new ArgumentException($"Unknown option '{args[i]}'.");
             }
@@ -337,17 +397,39 @@ class Program
         Raw
     }
 
+    static Target ParseTarget(string value) =>
+        value.ToLowerInvariant() switch
+        {
+            "zoom" => Target.Zoom,
+            "move" => Target.Move,
+            "move-x" => Target.MoveX,
+            "move-y" => Target.MoveY,
+            "all" => Target.All,
+            _ => throw new ArgumentException("--target must be 'zoom', 'move', 'move-x', 'move-y', or 'all'.")
+        };
+
+    enum Target
+    {
+        Zoom,
+        Move,
+        MoveX,
+        MoveY,
+        All
+    }
+
     sealed class Options
     {
         public string? Camera { get; set; }
         public string? Name { get; set; }
         public ValueMode? Mode { get; set; }
+        public Target? Target { get; set; }
         public int? X { get; set; }
         public int? Y { get; set; }
         public bool HasAnyValue =>
             !string.IsNullOrWhiteSpace(Camera) ||
             !string.IsNullOrWhiteSpace(Name) ||
             Mode.HasValue ||
+            Target.HasValue ||
             X.HasValue ||
             Y.HasValue;
     }

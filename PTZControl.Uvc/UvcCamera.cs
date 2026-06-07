@@ -70,6 +70,17 @@ namespace PTZControl.Uvc
         public static void MoveRelativePanTilt(string cam, int? x = null, int? y = null) =>
             LogitechExtensionUnit.MoveRelativePanTilt(cam, x, y);
 
+        public static void RestoreHome(string cam, bool zoom, bool move) =>
+            LogitechExtensionUnit.RestoreHome(cam, zoom, move);
+
+        public static void RestoreDefault(string cam, bool zoom, bool pan, bool tilt)
+        {
+            var zoomValue = zoom ? GetRange(cam, CameraProperty.Zoom).def : (int?)null;
+            var panValue = pan ? GetRange(cam, CameraProperty.Pan).def : (int?)null;
+            var tiltValue = tilt ? GetRange(cam, CameraProperty.Tilt).def : (int?)null;
+            SetPanTiltZoom(cam, panValue, tiltValue, zoomValue);
+        }
+
         public static (int min, int max, int step, int def) GetRange(string cam, CameraProperty prop)
         {
             var p = prop switch

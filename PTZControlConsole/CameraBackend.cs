@@ -14,6 +14,8 @@ internal interface ICameraBackend
     int GetValue(string camera, CameraProperty property);
     void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null);
     void MoveRelativePanTilt(string camera, int? x = null, int? y = null);
+    void RestoreHome(string camera, bool zoom, bool move);
+    void RestoreDefault(string camera, bool zoom, bool pan, bool tilt);
     void SavePreset(string camera, int presetNumber);
     void RestorePreset(string camera, int presetNumber);
 }
@@ -50,6 +52,12 @@ internal sealed class WindowsUvcCameraBackend : ICameraBackend
 
     public void MoveRelativePanTilt(string camera, int? x = null, int? y = null) =>
         UvcCamera.MoveRelativePanTilt(camera, x, y);
+
+    public void RestoreHome(string camera, bool zoom, bool move) =>
+        UvcCamera.RestoreHome(camera, zoom, move);
+
+    public void RestoreDefault(string camera, bool zoom, bool pan, bool tilt) =>
+        UvcCamera.RestoreDefault(camera, zoom, pan, tilt);
 
     public void SavePreset(string camera, int presetNumber) =>
         UvcCamera.SavePreset(camera, presetNumber);
@@ -117,6 +125,17 @@ internal sealed class LinuxPreviewCameraBackend : ICameraBackend
         var pan = x is null ? (int?)null : AddDelta(camera, CameraProperty.Pan, x.Value);
         var tilt = y is null ? (int?)null : AddDelta(camera, CameraProperty.Tilt, y.Value);
         SetPanTiltZoom(camera, pan, tilt);
+    }
+
+    public void RestoreHome(string camera, bool zoom, bool move) =>
+        throw LinuxPresetNotSupported();
+
+    public void RestoreDefault(string camera, bool zoom, bool pan, bool tilt)
+    {
+        var zoomValue = zoom ? GetRange(camera, CameraProperty.Zoom).def : (int?)null;
+        var panValue = pan ? GetRange(camera, CameraProperty.Pan).def : (int?)null;
+        var tiltValue = tilt ? GetRange(camera, CameraProperty.Tilt).def : (int?)null;
+        SetPanTiltZoom(camera, panValue, tiltValue, zoomValue);
     }
 
     public void SavePreset(string camera, int presetNumber) =>
@@ -269,6 +288,12 @@ internal sealed class UnsupportedCameraBackend(string message) : ICameraBackend
         throw new NotSupportedException(message);
 
     public void MoveRelativePanTilt(string camera, int? x = null, int? y = null) =>
+        throw new NotSupportedException(message);
+
+    public void RestoreHome(string camera, bool zoom, bool move) =>
+        throw new NotSupportedException(message);
+
+    public void RestoreDefault(string camera, bool zoom, bool pan, bool tilt) =>
         throw new NotSupportedException(message);
 
     public void SavePreset(string camera, int presetNumber) =>
