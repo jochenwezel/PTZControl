@@ -51,6 +51,8 @@ packaging, and cross-platform metadata work. See [LICENSE](LICENSE) and
 - [Command syntax](docs/syntax.md)
 - [Generated CLI help](docs/generated/cli-help.md)
 - [Generated example output](docs/generated/example-output.md)
+- [Stream Deck guide](docs/streamdeck.md)
+- [Bitfocus Companion guide](docs/bitfocus-companion.md)
 - [Linux installation](install-linux.md)
 
 ## Original Windows GUI documentation
