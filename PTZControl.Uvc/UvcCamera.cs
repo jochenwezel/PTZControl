@@ -8,12 +8,44 @@ namespace PTZControl.Uvc
 {
     public enum CameraProperty
     {
-        Pan = 0,      // CameraControlProperty.Pan
-        Tilt = 1,     // CameraControlProperty.Tilt
+        /// <summary>
+        /// Horizontal pan position. On real PTZ cameras this may drive the pan motor; on webcams it may only move a digital crop.
+        /// Support, range and units are camera/driver dependent.
+        /// </summary>
+        Pan = 0,
+
+        /// <summary>
+        /// Vertical tilt position. On real PTZ cameras this may drive the tilt motor; on webcams it may only move a digital crop.
+        /// Support, range and units are camera/driver dependent.
+        /// </summary>
+        Tilt = 1,
+
+        /// <summary>
+        /// Rotation around the optical axis. This is rarely implemented by typical webcams or PTZ cameras and may be unsupported.
+        /// </summary>
         Roll = 2,
+
+        /// <summary>
+        /// Zoom position. Depending on the camera this can be optical zoom, digital zoom, or unsupported.
+        /// Support, range and units are camera/driver dependent.
+        /// </summary>
         Zoom = 3,
+
+        /// <summary>
+        /// Exposure setting. Cameras commonly expose auto/manual modes separately via IAMCameraControl flags; manual values are
+        /// driver-specific and often not plain milliseconds.
+        /// </summary>
         Exposure = 4,
+
+        /// <summary>
+        /// Iris/aperture setting. Only cameras with a controllable iris usually support this property.
+        /// </summary>
         Iris = 5,
+
+        /// <summary>
+        /// Focus setting. Setting a manual focus value does not guarantee an autofocus run; a practical refocus attempt usually
+        /// means switching the camera to autofocus and, if desired, back to manual afterwards. Behavior is firmware/driver dependent.
+        /// </summary>
         Focus = 6
     }
 
