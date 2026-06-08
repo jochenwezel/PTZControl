@@ -113,13 +113,3 @@ Use one selector per button:
 `--camera` is readable and works well when camera names are unique.
 `--device-path` is verbose but precise. `--slot` is short, but depends on the
 camera enumeration order.
-
-## Screenshot checklist
-
-Add screenshots later for:
-
-1. Stream Deck command/run action configuration.
-2. Program path field pointing to `PTZControlConsole.exe`.
-3. Arguments field with a preset command.
-4. A finished button grid with camera actions.
-5. Optional: a DirectShow rename example with the warning noted in the caption.
