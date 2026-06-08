@@ -41,6 +41,7 @@ packaging, and cross-platform metadata work. See [LICENSE](LICENSE) and
 
 - [Command syntax](docs/syntax.md)
 - [Linux installation](install-linux.md)
+- [Bridge status](README_Bridge.md)
 
 ## History
 This small program is designed to control a Logitech PTZ 2 Pro. The camera was purchased to stream our church services.

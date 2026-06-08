@@ -1,41 +1,24 @@
-# PTZControl Bridge v2 (C++/CLI-first)
+# PTZControlBridge status
 
-Diese Version verdrahtet die **C#-Apps ausschließlich zur C++/CLI-Bridge**.
-Die Bridge kapselt:
-- **Standard-PTZ** (UVC) via DirectShow/IAMCameraControl (Fallback auf `PTZControl.Uvc` intern).
-- **Logitech XU** (IKsControl) als **Platzhalter**: `UseLogitechMotionControl`, `SavePreset`, `RecallPreset` (TODO).
+`PTZControlBridge` is an experimental C++/CLI bridge prototype. It is kept in
+the source tree for reference, but it is not the current backend for
+`PTZControlConsole`.
 
-## Projekte
-- `PTZControlBridge` (C++/CLI): Öffentliche API → `LogitechPtz` (Enumerate, GetRange, SetPTZ, Presets/Motion stubs).
-- `PTZControl.Uvc` (C# Class Library): Managed-Fallback für Standard-PTZ.
-- `PTZControlGUI` (WinForms): Referenziert **nur** die Bridge.
-- `PTZControlConsole` (Console): Referenziert **nur** die Bridge.
+Current console architecture:
 
-## Build
-1. **PTZControl.Uvc** (Debug) bauen.
-2. **PTZControlBridge** (Debug) bauen — referenziert die Uvc-DLL per HintPath.
-3. **PTZControlGUI** und **PTZControlConsole** (Debug) bauen — referenzieren die Bridge-DLL per HintPath.
+- `PTZControlConsole` references `PTZControl.Uvc` directly.
+- Windows camera control is implemented through the console backend abstraction.
+- Linux preview support is implemented through the same console backend
+  abstraction.
+- The current command syntax is documented in [docs/syntax.md](docs/syntax.md)
+  and generated help files under [docs/generated](docs/generated).
 
-> Passen Sie bei Bedarf die HintPaths an Ihre Ausgabeordner/Konfiguration an.
+Bridge limitations in the current source tree:
 
-## Verwendung
-```powershell
-# Liste
-PTZControlConsole --list
+- `PTZControlBridge` still references a Debug build output of `PTZControl.Uvc`.
+- Logitech XU methods in the bridge are placeholders.
+- The bridge is not used by the release packaging flow.
+- The bridge documentation must not be used as CLI syntax reference.
 
-# Standard-PTZ
-PTZControlConsole --camera "Rally" --pan 0 --tilt 50 --zoom 120
-
-# Presets (Stubs -> NotSupportedException, bis XU implementiert)
-PTZControlConsole --preset --camera "Rally" --save 1
-PTZControlConsole --preset --camera "Rally" --recall 1
-```
-
-## Nächste Schritte (Logitech XU)
-- In `PTZControlBridge` echte Implementierung via **IKsControl**:
-  - Gerät über Moniker öffnen, **Extension Unit Node** finden (Logitech GUIDs).
-  - `KSP_NODE` + `IKsControl::KsProperty` mit passenden `KSPROPERTY_*` & Control-IDs.
-  - Mapping der Upstream-Konstanten (aus Ihrem Altcode) in `LogitechXuGuids.h` einfügen.
-- Danach die GUI-Checkbox **„Motion Control“** und Preset-Buttons aktivieren.
-
-Lizenz-Hinweis: Wenn Sie Code aus dem GPL-3.0-Upstream übernehmen, bleibt die Veröffentlichung GPL-kompatibel.
+If the bridge becomes relevant again, update this document together with the
+project references, release packaging, and generated CLI documentation.
