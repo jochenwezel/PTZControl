@@ -20,153 +20,1078 @@
       "0": {
         "0": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 2500134, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "P1", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 2500134,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Speaker",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-restore-preset-1", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 1 --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-restore-preset-1",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 1 --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         },
         "1": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 2500134, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "P2", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 2500134,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Band",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-restore-preset-2", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 2 --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-restore-preset-2",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 2 --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         },
         "2": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 2500134, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "P3", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 2500134,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Audience",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-restore-preset-3", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 3 --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-restore-preset-3",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 3 --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         },
         "3": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 2500134, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "P4", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 2500134,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Full stage",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-restore-preset-4", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 4 --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-restore-preset-4",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 4 --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         },
         "4": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 2500134, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "P5", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 2500134,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Piano",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-restore-preset-5", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 5 --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-restore-preset-5",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-preset 5 --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         }
       },
       "1": {
         "0": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 39372, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "Z-", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 39372,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Zoom+",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-zoom-out", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" zoom-relative -10 --mode percent --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-zoom-in",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" zoom-relative 10 --mode percent --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
+        },
+        "1": {
+          "type": "button-layered",
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 4132224,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Pan <",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
+          "feedbacks": [],
+          "localVariables": [],
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-pan-left",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" move-relative --mode percent --pan -10 --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         },
         "2": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 4132224, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "TILT ^", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 4132224,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Tilt ^",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-tilt-up", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" move-relative --mode percent --tilt 10 --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-tilt-up",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" move-relative --mode percent --tilt 10 --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         },
-        "4": {
+        "3": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 39372, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "Z+", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 4132224,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Pan >",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-zoom-in", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" zoom-relative 10 --mode percent --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-pan-right",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" move-relative --mode percent --pan 10 --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         }
       },
       "2": {
         "0": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 3348787, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "HOME", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 39372,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Zoom-",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-home-move", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-home --target move --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
-        },
-        "1": {
-          "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 4132224, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "< PAN", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
-          "feedbacks": [],
-          "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-pan-left", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" move-relative --mode percent --pan -10 --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-zoom-out",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" zoom-relative -10 --mode percent --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         },
         "2": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 4132224, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "TILT v", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 4132224,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Tilt v",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-tilt-down", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" move-relative --mode percent --tilt -10 --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-tilt-down",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" move-relative --mode percent --tilt -10 --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         },
-        "3": {
+        "4": {
           "type": "button-layered",
-          "options": { "stepProgression": "auto", "rotaryActions": false, "canModifyStyleInApis": false, "notes": "" },
-          "style": { "layers": [
-            { "id": "canvas", "name": "Canvas", "usage": "automatic", "type": "canvas", "decoration": { "value": "follow_default", "isExpression": false }, "showStatusIcons": { "value": "follow_default", "isExpression": false } },
-            { "id": "box0", "name": "Background", "usage": "automatic", "type": "box", "color": { "value": 4132224, "isExpression": false } },
-            { "id": "text0", "name": "Text", "usage": "automatic", "type": "text", "text": { "value": "PAN >", "isExpression": false }, "color": { "value": 16777215, "isExpression": false } }
-          ] },
+          "options": {
+            "stepProgression": "auto",
+            "rotaryActions": false,
+            "canModifyStyleInApis": false,
+            "notes": ""
+          },
+          "style": {
+            "layers": [
+              {
+                "id": "canvas",
+                "name": "Canvas",
+                "usage": "automatic",
+                "type": "canvas",
+                "decoration": {
+                  "value": "follow_default",
+                  "isExpression": false
+                },
+                "showStatusIcons": {
+                  "value": "follow_default",
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "box0",
+                "name": "Background",
+                "usage": "automatic",
+                "type": "box",
+                "color": {
+                  "value": 3348787,
+                  "isExpression": false
+                }
+              },
+              {
+                "id": "text0",
+                "name": "Text",
+                "usage": "automatic",
+                "type": "text",
+                "text": {
+                  "value": "Back",
+                  "isExpression": false
+                },
+                "color": {
+                  "value": 16777215,
+                  "isExpression": false
+                }
+              }
+            ]
+          },
           "feedbacks": [],
           "localVariables": [],
-          "steps": { "0": { "action_sets": { "down": [ { "type": "action", "id": "act-pan-right", "definitionId": "exec", "connectionId": "internal", "options": { "path": { "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" move-relative --mode percent --pan 10 --camera \"PTZ Pro 2\"", "isExpression": false }, "cwd": { "value": "C:\\Tools\\PTZControlConsole", "isExpression": false }, "timeout": { "value": 5000, "isExpression": false }, "targetVariable": { "value": "", "isExpression": false } } } ], "up": [] }, "options": { "runWhileHeld": [] } } }
+          "steps": {
+            "0": {
+              "action_sets": {
+                "down": [
+                  {
+                    "type": "action",
+                    "id": "act-home-move",
+                    "definitionId": "exec",
+                    "connectionId": "internal",
+                    "options": {
+                      "path": {
+                        "value": "\"C:\\Tools\\PTZControlConsole\\PTZControlConsole.exe\" restore-home --target move --camera \"PTZ Pro 2\"",
+                        "isExpression": false
+                      },
+                      "cwd": {
+                        "value": "C:\\Tools\\PTZControlConsole",
+                        "isExpression": false
+                      },
+                      "timeout": {
+                        "value": 5000,
+                        "isExpression": false
+                      },
+                      "targetVariable": {
+                        "value": "",
+                        "isExpression": false
+                      }
+                    }
+                  }
+                ],
+                "up": []
+              },
+              "options": {
+                "runWhileHeld": []
+              }
+            }
+          }
         }
       }
     }
   }
 }
+
