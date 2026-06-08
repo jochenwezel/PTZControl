@@ -2,94 +2,236 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PTZControl2.MainWindow"
         Title="PTZControl2"
-        Width="880"
-        Height="620"
-        MinWidth="640"
-        MinHeight="460"
+        Width="860"
+        Height="560"
+        MinWidth="720"
+        MinHeight="500"
+        Background="#F4F6F8"
         WindowStartupLocation="CenterScreen">
-  <Grid Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="14">
-    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-      <TextBlock Text="Camera"
-                 VerticalAlignment="Center"
-                 FontWeight="SemiBold" />
-      <ComboBox x:Name="CameraSelector"
-                Grid.Column="1"
-                MinWidth="280"
-                VerticalAlignment="Center" />
-      <Button Grid.Column="2"
-              Content="Refresh"
-              Padding="18,8"
-              Click="RefreshButton_Click" />
-    </Grid>
+  <Window.Styles>
+    <Style Selector="Border.panel">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#D8DEE6" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="7" />
+    </Style>
+    <Style Selector="Button.preset">
+      <Setter Property="MinHeight" Value="86" />
+      <Setter Property="Margin" Value="5" />
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="Background" Value="#233142" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.motion">
+      <Setter Property="Width" Value="94" />
+      <Setter Property="Height" Value="78" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="Background" Value="#3B5B7A" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.zoom">
+      <Setter Property="Height" Value="78" />
+      <Setter Property="Padding" Value="10" />
+      <Setter Property="Background" Value="#1E7A68" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.sectionTitle">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#16202A" />
+    </Style>
+    <Style Selector="TextBlock.icon">
+      <Setter Property="FontSize" Value="28" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="TextAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.caption">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="TextAlignment" Value="Center" />
+    </Style>
+  </Window.Styles>
 
-    <Grid Grid.Row="1" ColumnDefinitions="1.25*,*" ColumnSpacing="16">
-      <StackPanel Spacing="16">
-        <StackPanel Spacing="8">
-          <TextBlock Text="Presets"
-                     FontSize="18"
-                     FontWeight="SemiBold" />
-          <UniformGrid Columns="4" Rows="2">
-            <Button Content="Preset 1" Tag="1" MinHeight="54" Margin="4" Click="PresetButton_Click" />
-            <Button Content="Preset 2" Tag="2" MinHeight="54" Margin="4" Click="PresetButton_Click" />
-            <Button Content="Preset 3" Tag="3" MinHeight="54" Margin="4" Click="PresetButton_Click" />
-            <Button Content="Preset 4" Tag="4" MinHeight="54" Margin="4" Click="PresetButton_Click" />
-            <Button Content="Preset 5" Tag="5" MinHeight="54" Margin="4" Click="PresetButton_Click" />
-            <Button Content="Preset 6" Tag="6" MinHeight="54" Margin="4" Click="PresetButton_Click" />
-            <Button Content="Preset 7" Tag="7" MinHeight="54" Margin="4" Click="PresetButton_Click" />
-            <Button Content="Preset 8" Tag="8" MinHeight="54" Margin="4" Click="PresetButton_Click" />
-          </UniformGrid>
-        </StackPanel>
-
-        <StackPanel Spacing="8">
-          <TextBlock Text="Pan / Tilt"
-                     FontSize="18"
-                     FontWeight="SemiBold" />
-          <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-            <Button Grid.Column="1" Grid.Row="0" Content="Tilt up" MinHeight="58" Click="TiltUpButton_Click" />
-            <Button Grid.Column="0" Grid.Row="1" Content="Pan left" MinHeight="58" Click="PanLeftButton_Click" />
-            <Button Grid.Column="1" Grid.Row="1" Content="Home" MinHeight="58" Click="HomeButton_Click" />
-            <Button Grid.Column="2" Grid.Row="1" Content="Pan right" MinHeight="58" Click="PanRightButton_Click" />
-            <Button Grid.Column="1" Grid.Row="2" Content="Tilt down" MinHeight="58" Click="TiltDownButton_Click" />
-          </Grid>
-        </StackPanel>
-
-        <StackPanel Spacing="8">
-          <TextBlock Text="Zoom"
-                     FontSize="18"
-                     FontWeight="SemiBold" />
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-            <Button Content="Zoom out" MinHeight="52" Click="ZoomOutButton_Click" />
-            <Button Grid.Column="1" Content="Zoom in" MinHeight="52" Click="ZoomInButton_Click" />
-          </Grid>
-          <Slider x:Name="ZoomSlider"
-                  Minimum="0"
-                  Maximum="100"
-                  TickFrequency="10"
-                  IsSnapToTickEnabled="False"
-                  Value="0" />
-          <Button Content="Set zoom" MinHeight="44" Click="SetZoomButton_Click" />
-        </StackPanel>
-
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-          <Button Content="Default move" MinHeight="48" Click="DefaultMoveButton_Click" />
-          <Button Grid.Column="1" Content="Default all" MinHeight="48" Click="DefaultAllButton_Click" />
-        </Grid>
-      </StackPanel>
-
-      <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="8">
-        <Button Content="Show camera info" MinHeight="44" Click="ShowCameraInfoButton_Click" />
-        <TextBox x:Name="DetailsText"
-                 Grid.Row="1"
-                 IsReadOnly="True"
-                 AcceptsReturn="True"
-                 TextWrapping="Wrap"
-                 Text="Select a camera and use Refresh or Show camera info." />
+  <Grid Margin="18" RowDefinitions="Auto,*,Auto" RowSpacing="16">
+    <Border Classes="panel" Padding="14">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+        <TextBlock Text="Camera"
+                   VerticalAlignment="Center"
+                   FontWeight="SemiBold"
+                   Foreground="#16202A" />
+        <ComboBox x:Name="CameraSelector"
+                  Grid.Column="1"
+                  MinWidth="320"
+                  VerticalAlignment="Center"
+                  SelectionChanged="CameraSelector_SelectionChanged" />
+        <Button Grid.Column="2"
+                Content="Info"
+                Padding="16,8"
+                Click="ShowCameraInfoButton_Click" />
+        <Button Grid.Column="3"
+                Content="Refresh"
+                Padding="16,8"
+                Click="RefreshButton_Click" />
       </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="1.15*,Auto" ColumnSpacing="16">
+      <Border Classes="panel">
+        <Grid RowDefinitions="Auto,*" RowSpacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Presets" Classes="sectionTitle" />
+            <TextBlock Grid.Column="1"
+                       Text="Restore saved camera positions"
+                       Foreground="#607080"
+                       FontSize="12"
+                       VerticalAlignment="Center" />
+          </Grid>
+
+          <UniformGrid Grid.Row="1" Columns="4" Rows="2">
+            <Button Classes="preset" Tag="1" Click="PresetButton_Click">
+              <StackPanel Spacing="4">
+                <TextBlock Text="1" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="Preset1Text" Text="Preset 1" TextWrapping="Wrap" FontSize="13" />
+              </StackPanel>
+            </Button>
+            <Button Classes="preset" Tag="2" Click="PresetButton_Click">
+              <StackPanel Spacing="4">
+                <TextBlock Text="2" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="Preset2Text" Text="Preset 2" TextWrapping="Wrap" FontSize="13" />
+              </StackPanel>
+            </Button>
+            <Button Classes="preset" Tag="3" Click="PresetButton_Click">
+              <StackPanel Spacing="4">
+                <TextBlock Text="3" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="Preset3Text" Text="Preset 3" TextWrapping="Wrap" FontSize="13" />
+              </StackPanel>
+            </Button>
+            <Button Classes="preset" Tag="4" Click="PresetButton_Click">
+              <StackPanel Spacing="4">
+                <TextBlock Text="4" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="Preset4Text" Text="Preset 4" TextWrapping="Wrap" FontSize="13" />
+              </StackPanel>
+            </Button>
+            <Button Classes="preset" Tag="5" Click="PresetButton_Click">
+              <StackPanel Spacing="4">
+                <TextBlock Text="5" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="Preset5Text" Text="Preset 5" TextWrapping="Wrap" FontSize="13" />
+              </StackPanel>
+            </Button>
+            <Button Classes="preset" Tag="6" Click="PresetButton_Click">
+              <StackPanel Spacing="4">
+                <TextBlock Text="6" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="Preset6Text" Text="Preset 6" TextWrapping="Wrap" FontSize="13" />
+              </StackPanel>
+            </Button>
+            <Button Classes="preset" Tag="7" Click="PresetButton_Click">
+              <StackPanel Spacing="4">
+                <TextBlock Text="7" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="Preset7Text" Text="Preset 7" TextWrapping="Wrap" FontSize="13" />
+              </StackPanel>
+            </Button>
+            <Button Classes="preset" Tag="8" Click="PresetButton_Click">
+              <StackPanel Spacing="4">
+                <TextBlock Text="8" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="Preset8Text" Text="Preset 8" TextWrapping="Wrap" FontSize="13" />
+              </StackPanel>
+            </Button>
+          </UniformGrid>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1" Classes="panel" Width="330">
+        <StackPanel Spacing="16">
+          <TextBlock Text="Live control" Classes="sectionTitle" HorizontalAlignment="Center" />
+
+          <Grid ColumnDefinitions="94,94,94" RowDefinitions="78,78,78" ColumnSpacing="8" RowSpacing="8" HorizontalAlignment="Center">
+            <Button Grid.Column="1" Grid.Row="0" Classes="motion" Click="TiltUpButton_Click">
+              <StackPanel>
+                <TextBlock Text="▲" Classes="icon" />
+                <TextBlock Text="Tilt" Classes="caption" />
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="0" Grid.Row="1" Classes="motion" Click="PanLeftButton_Click">
+              <StackPanel>
+                <TextBlock Text="◀" Classes="icon" />
+                <TextBlock Text="Pan" Classes="caption" />
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="1" Grid.Row="1" Classes="motion" Background="#2E7D66" Click="HomeButton_Click">
+              <StackPanel>
+                <TextBlock Text="⌂" Classes="icon" />
+                <TextBlock Text="Home" Classes="caption" />
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="2" Grid.Row="1" Classes="motion" Click="PanRightButton_Click">
+              <StackPanel>
+                <TextBlock Text="▶" Classes="icon" />
+                <TextBlock Text="Pan" Classes="caption" />
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="1" Grid.Row="2" Classes="motion" Click="TiltDownButton_Click">
+              <StackPanel>
+                <TextBlock Text="▼" Classes="icon" />
+                <TextBlock Text="Tilt" Classes="caption" />
+              </StackPanel>
+            </Button>
+          </Grid>
+
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Button Classes="zoom" Click="ZoomOutButton_Click">
+              <StackPanel>
+                <TextBlock Text="−" Classes="icon" />
+                <TextBlock Text="Zoom out" Classes="caption" />
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="1" Classes="zoom" Click="ZoomInButton_Click">
+              <StackPanel>
+                <TextBlock Text="+" Classes="icon" />
+                <TextBlock Text="Zoom in" Classes="caption" />
+              </StackPanel>
+            </Button>
+          </Grid>
+
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <Slider x:Name="ZoomSlider"
+                    Minimum="0"
+                    Maximum="100"
+                    TickFrequency="10"
+                    IsSnapToTickEnabled="False"
+                    Value="0"
+                    VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="Set" MinWidth="62" Click="SetZoomButton_Click" />
+          </Grid>
+
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Button Content="Default move" MinHeight="42" Click="DefaultMoveButton_Click" />
+            <Button Grid.Column="1" Content="Default all" MinHeight="42" Click="DefaultAllButton_Click" />
+          </Grid>
+        </StackPanel>
+      </Border>
     </Grid>
 
-    <TextBlock x:Name="StatusText"
-               Grid.Row="2"
-               Text="Ready."
-               TextWrapping="Wrap" />
+    <Border Grid.Row="2"
+            Background="#E8EDF2"
+            BorderBrush="#CED6DF"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="12,9">
+      <TextBlock x:Name="StatusText"
+                 Text="Ready."
+                 Foreground="#263442"
+                 TextWrapping="Wrap" />
+    </Border>
   </Grid>
 </Window>

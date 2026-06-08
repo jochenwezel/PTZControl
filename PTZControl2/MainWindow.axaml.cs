@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Versioning;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Microsoft.Win32;
 using PTZControl.Core;
 using PTZControl.Uvc;
 
@@ -13,9 +15,9 @@ public sealed partial class MainWindow : Window
 {
     private readonly ICameraBackend _backend = CameraBackendFactory.Create();
     private readonly Dictionary<string, CameraInfo> _cameraByLabel = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<TextBlock> _presetLabels = new();
     private ComboBox _cameraSelector = null!;
     private TextBlock _statusText = null!;
-    private TextBox _detailsText = null!;
     private Slider _zoomSlider = null!;
 
     public MainWindow()
@@ -31,10 +33,13 @@ public sealed partial class MainWindow : Window
             ?? throw new InvalidOperationException("CameraSelector control not found.");
         _statusText = this.FindControl<TextBlock>("StatusText")
             ?? throw new InvalidOperationException("StatusText control not found.");
-        _detailsText = this.FindControl<TextBox>("DetailsText")
-            ?? throw new InvalidOperationException("DetailsText control not found.");
         _zoomSlider = this.FindControl<Slider>("ZoomSlider")
             ?? throw new InvalidOperationException("ZoomSlider control not found.");
+        for (var preset = 1; preset <= 8; preset++)
+        {
+            _presetLabels.Add(this.FindControl<TextBlock>($"Preset{preset}Text")
+                ?? throw new InvalidOperationException($"Preset{preset}Text control not found."));
+        }
 
         _zoomSlider.PropertyChanged += (_, e) =>
         {
@@ -45,7 +50,20 @@ public sealed partial class MainWindow : Window
 
     private void RefreshButton_Click(object? sender, RoutedEventArgs e) => RefreshCameras();
 
-    private void ShowCameraInfoButton_Click(object? sender, RoutedEventArgs e) => ShowCameraInfo();
+    private void CameraSelector_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        UpdatePresetLabels();
+        _statusText.Text = TryGetSelectedCamera(out var camera)
+            ? $"Selected camera: {camera.Name}"
+            : "Select a camera.";
+    }
+
+    private async void ShowCameraInfoButton_Click(object? sender, RoutedEventArgs e)
+    {
+        var info = BuildCameraInfoText();
+        var dialog = new CameraInfoDialog { Info = info };
+        await dialog.ShowDialog(this);
+    }
 
     private void PresetButton_Click(object? sender, RoutedEventArgs e)
     {
@@ -107,7 +125,7 @@ public sealed partial class MainWindow : Window
             _cameraSelector.ItemsSource = labels;
             _cameraSelector.SelectedIndex = labels.Count > 0 ? 0 : -1;
             _statusText.Text = labels.Count == 0 ? "No cameras found." : $"Found {labels.Count} camera(s).";
-            ShowCameraInfo();
+            UpdatePresetLabels();
         }
         catch (Exception ex)
         {
@@ -115,10 +133,10 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void ShowCameraInfo()
+    private string BuildCameraInfoText()
     {
         if (!TryGetSelectedCamera(out var camera))
-            return;
+            return "No camera selected.";
 
         var cameraKey = GetCameraKey(camera);
         var lines = new List<string>
@@ -132,7 +150,7 @@ public sealed partial class MainWindow : Window
         AppendRange(lines, cameraKey, "Pan", CameraProperty.Pan);
         AppendRange(lines, cameraKey, "Tilt", CameraProperty.Tilt);
 
-        _detailsText.Text = string.Join(Environment.NewLine, lines);
+        return string.Join(Environment.NewLine, lines);
     }
 
     private void AppendRange(List<string> lines, string camera, string label, CameraProperty property)
@@ -179,7 +197,6 @@ public sealed partial class MainWindow : Window
         {
             action(GetCameraKey(camera));
             _statusText.Text = $"{actionName}: OK";
-            ShowCameraInfo();
         }
         catch (Exception ex)
         {
@@ -197,12 +214,39 @@ public sealed partial class MainWindow : Window
         return false;
     }
 
+    private void UpdatePresetLabels()
+    {
+        var slotIndex = _cameraSelector.SelectedIndex;
+        for (var preset = 1; preset <= _presetLabels.Count; preset++)
+        {
+            var name = slotIndex >= 0 ? ReadPresetName(slotIndex, preset) : null;
+            _presetLabels[preset - 1].Text = string.IsNullOrWhiteSpace(name)
+                ? $"Preset {preset}"
+                : name;
+        }
+    }
+
+    private static string? ReadPresetName(int cameraSlotIndex, int preset)
+    {
+        if (OperatingSystem.IsWindows())
+            return ReadPresetNameFromRegistry(cameraSlotIndex, preset);
+
+        return null;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static string? ReadPresetNameFromRegistry(int cameraSlotIndex, int preset)
+    {
+        var valueName = $"Tooltip{preset + cameraSlotIndex * 100}";
+        using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\MRi-Software\PTZControl\Window");
+        return key?.GetValue(valueName) as string;
+    }
+
     private static string GetCameraKey(CameraInfo camera) =>
         string.IsNullOrWhiteSpace(camera.MonikerString) ? camera.Name : camera.MonikerString;
 
     private void SetError(string context, Exception ex)
     {
         _statusText.Text = $"{context}: {ex.Message}";
-        _detailsText.Text = ex.ToString();
     }
 }
