@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using PTZControl.Uvc;
 
-namespace PTZControlConsole;
+namespace PTZControl.Core;
 
-internal interface ICameraBackend
+public interface ICameraBackend
 {
     IReadOnlyList<CameraInfo> Enumerate();
     string GetDirectShowCameraName(string devicePath);
@@ -23,7 +23,7 @@ internal interface ICameraBackend
     void RestorePreset(string camera, int presetNumber);
 }
 
-internal static class CameraBackendFactory
+public static class CameraBackendFactory
 {
     public static ICameraBackend Create()
     {
@@ -41,7 +41,7 @@ internal static class CameraBackendFactory
 }
 
 [SupportedOSPlatform("windows")]
-internal sealed class WindowsUvcCameraBackend : ICameraBackend
+public sealed class WindowsUvcCameraBackend : ICameraBackend
 {
     public IReadOnlyList<CameraInfo> Enumerate() => UvcCamera.Enumerate();
 
@@ -110,7 +110,7 @@ internal sealed class WindowsUvcCameraBackend : ICameraBackend
         UvcCamera.RestorePreset(camera, presetNumber);
 }
 
-internal sealed class LinuxPreviewCameraBackend : ICameraBackend
+public sealed class LinuxPreviewCameraBackend : ICameraBackend
 {
     private const int OReadWrite = 2;
     private const uint V4L2CtrlFlagDisabled = 0x0001;
@@ -324,7 +324,7 @@ internal sealed class LinuxPreviewCameraBackend : ICameraBackend
     }
 }
 
-internal sealed class UnsupportedCameraBackend(string message) : ICameraBackend
+public sealed class UnsupportedCameraBackend(string message) : ICameraBackend
 {
     public IReadOnlyList<CameraInfo> Enumerate() => throw new NotSupportedException(message);
 

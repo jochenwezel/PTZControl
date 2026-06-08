@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <RuntimeIdentifiers>win-x64;win-x86;linux-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <RollForward>Major</RollForward>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AssemblyName>PTZControl2</AssemblyName>
+    <ApplicationIcon>..\PTZControl\res\PTZControl.ico</ApplicationIcon>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <Copyright>PTZControl contributors</Copyright>
   </PropertyGroup>
@@ -15,6 +16,8 @@
     <ProjectReference Include="..\PTZControl.Uvc\PTZControl.Uvc.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="Avalonia" Version="12.0.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.4" />
   </ItemGroup>
 </Project>

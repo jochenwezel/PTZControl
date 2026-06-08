@@ -9,8 +9,8 @@ using System.Text.Json.Serialization;
 using CommandLine;
 using CommandLine.Text;
 using Microsoft.Win32;
+using PTZControl.Core;
 using PTZControl.Uvc;
-using PTZControlConsole;
 using UvcCameraProperty = PTZControl.Uvc.CameraProperty;
 
 class Program
