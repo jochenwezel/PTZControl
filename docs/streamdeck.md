@@ -4,6 +4,11 @@
 actions. This is useful when a camera action should be triggered from a physical
 button without opening the PTZControl Windows GUI.
 
+![Illustrative Stream Deck command setup mockup](assets/streamdeck-command-mockup.png)
+
+_Illustrative mockup. The exact Stream Deck action UI depends on the installed
+Stream Deck software version and plugins._
+
 ## Preparation
 
 1. Download the matching Windows console package from the GitHub release page.

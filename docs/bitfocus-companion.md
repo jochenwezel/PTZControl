@@ -12,8 +12,12 @@ is:
 
 1. Install or extract `PTZControlConsole`.
 2. Verify camera control from a terminal.
-3. Configure Companion buttons to call scripts or commands that invoke
-   `PTZControlConsole`.
+3. Configure Companion buttons to call scripts or command-line actions that
+   invoke `PTZControlConsole`.
+
+The native module target UI is intentionally not documented here yet. Until the
+module exists, configure actions in the same practical style as Stream Deck:
+run `PTZControlConsole.exe` with the desired arguments.
 
 ## Preparation
 
@@ -101,9 +105,12 @@ Initial module actions should cover:
 
 Add screenshots later for:
 
-1. Companion module/connection configuration.
-2. Console path setting.
-3. Camera dropdown with device name, slot, alias, and device path information.
-4. Button action configured for `restore-preset`.
-5. Button action configured for zoom or movement.
-6. Companion button grid with camera preset buttons.
+1. Current workaround: Companion command/script action configuration.
+2. Current workaround: full `PTZControlConsole.exe` command-line invocation.
+3. Future native module: module/connection configuration.
+4. Future native module: console path setting.
+5. Future native module: camera dropdown with device name, slot, alias, and
+   device path information.
+6. Future native module: button action configured for `restore-preset`.
+7. Future native module: button action configured for zoom or movement.
+8. Future native module: Companion button grid with camera preset buttons.
