@@ -87,7 +87,13 @@ class Program
 
         if (args.Length == 2 && args[0].Equals("help", StringComparison.OrdinalIgnoreCase))
         {
-            Console.Error.Write(CaptureParserHelp(new[] { args[1], "--help" }));
+            Console.Error.Write(RenderVerbHelp(args[1], new[] { args[1], "--help" }));
+            return 0;
+        }
+
+        if (args.Length >= 2 && FindVerbType(args[0]) is not null && args.Skip(1).Any(IsMainHelpRequest))
+        {
+            Console.Error.Write(RenderVerbHelp(args[0], args));
             return 0;
         }
 
@@ -97,7 +103,7 @@ class Program
             return 0;
         }
 
-        Console.Error.Write(CaptureParserHelp(args));
+        Console.Error.Write(RenderHelp(args));
         return 1;
     }
 
@@ -219,6 +225,14 @@ class Program
         verbType.GetCustomAttribute<VerbAttribute>()?.Name
         ?? throw new InvalidOperationException($"Missing VerbAttribute on {verbType.FullName}.");
 
+    static Type? FindVerbType(string verbName) =>
+        AllVerbTypes.FirstOrDefault(type =>
+            string.Equals(GetVerbName(type), verbName, StringComparison.OrdinalIgnoreCase));
+
+    static string GetVerbHelpText(Type verbType) =>
+        verbType.GetCustomAttribute<VerbAttribute>()?.HelpText
+        ?? "";
+
     static void AppendMainHelpBlock(StringBuilder builder)
     {
         var help = new HelpText
@@ -267,9 +281,65 @@ class Program
         builder.AppendLine($"## {title}");
         builder.AppendLine();
         builder.AppendLine("```text");
-        builder.Append(CaptureParserHelp(args, forDocumentation: true));
+        builder.Append(RenderVerbHelp(title, args, forDocumentation: true));
         builder.AppendLine("```");
         builder.AppendLine();
+    }
+
+    static string RenderHelp(string[] args, bool forDocumentation = false)
+    {
+        if (args.Length > 0)
+        {
+            var firstArg = args[0];
+            if (!firstArg.StartsWith("-", StringComparison.Ordinal) && FindVerbType(firstArg) is not null)
+                return RenderVerbHelp(firstArg, args, forDocumentation);
+        }
+
+        return CaptureParserHelp(args, forDocumentation);
+    }
+
+    static string RenderVerbHelp(string verbName, string[] args, bool forDocumentation = false)
+    {
+        var verbType = FindVerbType(verbName);
+        if (verbType is null)
+            return CaptureParserHelp(args, forDocumentation);
+
+        var builder = new StringBuilder();
+        builder.AppendLine(forDocumentation ? GetDocumentationVersionLine() : GetVersionLine());
+        builder.AppendLine();
+        builder.AppendLine($"{GetVerbName(verbType)}");
+        var helpText = GetVerbHelpText(verbType);
+        if (!string.IsNullOrWhiteSpace(helpText))
+            builder.AppendLine($"  {helpText}");
+        builder.AppendLine();
+
+        var parserHelp = CaptureParserHelp(args, forDocumentation)
+            .Replace(forDocumentation ? GetDocumentationVersionLine() : GetVersionLine(), "", StringComparison.Ordinal)
+            .TrimStart();
+        if (!string.IsNullOrWhiteSpace(parserHelp))
+        {
+            builder.AppendLine("Options:");
+            builder.Append(NormalizeIndentedBlock(parserHelp));
+        }
+
+        return builder.ToString();
+    }
+
+    static string NormalizeIndentedBlock(string text)
+    {
+        var builder = new StringBuilder();
+        foreach (var line in text.Replace("\r\n", "\n").Split('\n'))
+        {
+            if (line.Length == 0)
+                continue;
+
+            var normalizedLine = line.StartsWith("  ", StringComparison.Ordinal)
+                ? line[2..]
+                : line.TrimStart();
+            builder.Append("  ");
+            builder.AppendLine(normalizedLine.TrimEnd());
+        }
+        return builder.ToString().TrimEnd() + Environment.NewLine;
     }
 
     static string CaptureParserHelp(string[] args, bool forDocumentation = false)

@@ -41,10 +41,12 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+list-devices
+  List available camera devices.
+
+Options:
   --help       Display this help screen.
-
   --version    Display version information.
-
 ```
 
 ## cam-device-info
@@ -52,16 +54,15 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+cam-device-info
+  Show camera device information and supported raw ranges.
+
+Options:
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
 ```
 
 ## get-preset-name
@@ -69,18 +70,16 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+get-preset-name
+  Print the friendly name of one preset.
+
+Options:
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
   preset (pos. 0)      Required. Preset number 1..8.
-
 ```
 
 ## set-preset-name
@@ -88,20 +87,17 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+set-preset-name
+  Store the friendly name of one preset.
+
+Options:
   -n, --friendlyname    Required. Friendly display name to store.
-
   -c, --camera          Camera device name fragment.
-
   -d, --device-path     Concrete camera device path.
-
   -s, --slot            PTZControl camera slot 1..3.
-
   --help                Display this help screen.
-
   --version             Display version information.
-
   preset (pos. 0)       Required. Preset number 1..8.
-
 ```
 
 ## clear-preset-name
@@ -109,18 +105,16 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+clear-preset-name
+  Clear the friendly name of one preset.
+
+Options:
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
   preset (pos. 0)      Required. Preset number 1..8.
-
 ```
 
 ## get-camera-name
@@ -128,12 +122,13 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+get-camera-name
+  Print the friendly name of one camera slot.
+
+Options:
   -s, --slot    Required. PTZControl camera slot 1..3.
-
   --help        Display this help screen.
-
   --version     Display version information.
-
 ```
 
 ## set-camera-name
@@ -141,14 +136,14 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+set-camera-name
+  Store the friendly name of one camera slot.
+
+Options:
   -s, --slot            Required. PTZControl camera slot 1..3.
-
   -n, --friendlyname    Required. Friendly display name to store.
-
   --help                Display this help screen.
-
   --version             Display version information.
-
 ```
 
 ## clear-camera-name
@@ -156,12 +151,13 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+clear-camera-name
+  Clear the friendly name of one camera slot.
+
+Options:
   -s, --slot    Required. PTZControl camera slot 1..3.
-
   --help        Display this help screen.
-
   --version     Display version information.
-
 ```
 
 ## get-directshow-camera-name
@@ -169,16 +165,15 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+get-directshow-camera-name
+  Print the Windows DirectShow camera name.
+
+Options:
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
 ```
 
 ## set-directshow-camera-name
@@ -186,20 +181,17 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+set-directshow-camera-name
+  Set the Windows DirectShow camera name.
+
+Options:
   -n, --friendlyname       Required. DirectShow friendly name to write.
-
   --acknowledge-warning    Skip the interactive registry risk confirmation.
-
   -c, --camera             Camera device name fragment.
-
   -d, --device-path        Concrete camera device path.
-
   -s, --slot               PTZControl camera slot 1..3.
-
   --help                   Display this help screen.
-
   --version                Display version information.
-
 ```
 
 ## swap-preset-names
@@ -207,14 +199,14 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+swap-preset-names
+  Swap preset friendly names between two camera slots.
+
+Options:
   --slot-a     Required. First PTZControl camera slot 1..3.
-
   --slot-b     Required. Second PTZControl camera slot 1..3.
-
   --help       Display this help screen.
-
   --version    Display version information.
-
 ```
 
 ## config
@@ -222,16 +214,15 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+config
+  Export or import preset and camera friendly-name metadata.
+
+Options:
   --export              Export metadata JSON to stdout or json-path.
-
   --import              Import metadata JSON from a file path.
-
   --help                Display this help screen.
-
   --version             Display version information.
-
   json-path (pos. 0)    JSON file path for config export.
-
 ```
 
 ## restore-home
@@ -239,19 +230,17 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+restore-home
+  Restore the Logitech home position.
+
+Options:
   -t, --target         Required. Restore target: zoom, move, move-x, move-y, or
                        all. Home supports zoom, move, or all.
-
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
 ```
 
 ## restore-default
@@ -259,19 +248,17 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+restore-default
+  Restore driver default values.
+
+Options:
   -t, --target         Required. Restore target: zoom, move, move-x, move-y, or
                        all. Home supports zoom, move, or all.
-
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
 ```
 
 ## restore-preset
@@ -279,18 +266,16 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+restore-preset
+  Restore a camera preset position.
+
+Options:
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
   preset (pos. 0)      Required. Preset number 1..8.
-
 ```
 
 ## save-preset
@@ -298,21 +283,18 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+save-preset
+  Save the current camera position as a preset.
+
+Options:
   -n, --friendlyname    Friendly display name to store separately with
                         set-preset-name.
-
   -c, --camera          Camera device name fragment.
-
   -d, --device-path     Concrete camera device path.
-
   -s, --slot            PTZControl camera slot 1..3.
-
   --help                Display this help screen.
-
   --version             Display version information.
-
   preset (pos. 0)       Required. Preset number 1..8.
-
 ```
 
 ## zoom-absolute
@@ -320,20 +302,17 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+zoom-absolute
+  Set an absolute zoom value.
+
+Options:
   -m, --mode           Required. Value mode: percent or raw.
-
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
   value (pos. 0)       Required. Absolute zoom value.
-
 ```
 
 ## zoom-relative
@@ -341,20 +320,17 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+zoom-relative
+  Change zoom by a relative delta.
+
+Options:
   -m, --mode              Required. Value mode: percent or raw.
-
   -c, --camera            Camera device name fragment.
-
   -d, --device-path       Concrete camera device path.
-
   -s, --slot              PTZControl camera slot 1..3.
-
   --help                  Display this help screen.
-
   --version               Display version information.
-
   value-delta (pos. 0)    Required. Relative zoom delta.
-
 ```
 
 ## move-absolute
@@ -362,22 +338,18 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+move-absolute
+  Set absolute pan and/or tilt values.
+
+Options:
   -x, --pan            Pan axis value.
-
   -y, --tilt           Tilt axis value.
-
   -m, --mode           Required. Value mode: percent or raw.
-
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
 ```
 
 ## move-seek
@@ -385,30 +357,23 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+move-seek
+  Experimentally seek absolute pan and/or tilt values using relative movement.
+
+Options:
   --tolerance          (Default: 2) Allowed target distance in the selected
                        mode.
-
   --max-iterations     (Default: 30) Maximum relative correction attempts.
-
   --settle-ms          (Default: 250) Delay after each relative movement
                        attempt.
-
   -x, --pan            Pan axis value.
-
   -y, --tilt           Tilt axis value.
-
   -m, --mode           Required. Value mode: percent or raw.
-
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
 ```
 
 ## move-relative
@@ -416,21 +381,17 @@ PTZControlConsole 1.0.0.0
 ```text
 PTZControlConsole 1.0.0.0
 
+move-relative
+  Change pan and/or tilt by relative deltas.
+
+Options:
   -x, --pan            Pan axis value.
-
   -y, --tilt           Tilt axis value.
-
   -m, --mode           Required. Value mode: percent or raw.
-
   -c, --camera         Camera device name fragment.
-
   -d, --device-path    Concrete camera device path.
-
   -s, --slot           PTZControl camera slot 1..3.
-
   --help               Display this help screen.
-
   --version            Display version information.
-
 ```
 
