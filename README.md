@@ -49,6 +49,8 @@ packaging, and cross-platform metadata work. See [LICENSE](LICENSE) and
 ## Documentation
 
 - [Command syntax](docs/syntax.md)
+- [Generated CLI help](docs/generated/cli-help.md)
+- [Generated example output](docs/generated/example-output.md)
 - [Linux installation](install-linux.md)
 - [Bridge status](README_Bridge.md)
 
