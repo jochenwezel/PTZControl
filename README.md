@@ -52,6 +52,14 @@ packaging, and cross-platform metadata work. See [LICENSE](LICENSE) and
 - [Linux installation](install-linux.md)
 - [Bridge status](README_Bridge.md)
 
+## Original Windows GUI documentation
+
+The following sections describe Martin Richter's original Windows GUI
+application `PTZControl.exe`. They are kept for upstream context. They do not
+describe the fork-specific `PTZControlConsole` syntax. For the current console
+tool, use [Command syntax](docs/syntax.md) and the generated help in
+[docs/generated](docs/generated).
+
 ## History
 This small program is designed to control a Logitech PTZ 2 Pro. The camera was purchased to stream our church services.
 Unfortunately, it quickly turned out that the operation with the remote control is possible but cumbersome and inaccurate. The camera was installed directly behind and above the video technician and always pointing back with the remote control was not comfortable. 
@@ -93,7 +101,7 @@ Presets are changed by pressing the M button (Memory) followed by a number key. 
 
 The program remembers its last position on the screen and is automatically repositioned to when it is started. 
 All settings are stored in the registry under the branch `HKEY_CURRENT_USER\SOFTWARE\MRi-Software\PTZControl`.
-See the command line secion too.
+See the `PTZControl.exe` command line section too.
 
 ### Supported Cameras
 Currently, the Logitech PTZ 2 Pro, PTZ Pro, Logitech Rally cameras, Logi Group Camera and ConferenceCam CC3000e Camera are automatically detected.
@@ -123,7 +131,7 @@ If you click on a direction button once, the motor is turned on and off again af
 If the direction button remains pressed, the motor remains switched on for the corresponding direction until the button is released again.
 This control seems more effective and accurate to me and is the standard. The disadvantage is that if the timer interval is too small, the camera does not react immediately when a button is clicked. But since precision was more important to me because our camera is installed relatively far away from the podium, I use this setting with a 70msec timer.
 
-## Normal Hotkeys
+## PTZControl.exe normal hotkeys
 The program has serveral hotkeys that allows a control without the mouse when it has the focus.
 - Pan-Tilt control with Left, Right, Up, Down keys.
 - Home position with Num-0, Home keys.
@@ -134,7 +142,7 @@ The program has serveral hotkeys that allows a control without the mouse when it
 - Select Camera 1. Alt+1, Alt+Num-1, Alt+Page-Up
 - Select Camera 2. Alt+2, Alt+Num-2, Alt+Page-Down
 
-## Global Hotkeys
+## PTZControl.exe global hotkeys
 There are also global hotkeys defined. They work from any active program. Normal hotkeys work only as long as the PTZControl program has the input focus. All global hotkeys use the Windows key in combination with Ctrl+Alt key. The global hotkeys defined are:
 - For camera 1
 	- Home position => Windows-Key + 0 (on the numeric key pad) 
@@ -148,8 +156,10 @@ There are also global hotkeys defined. They work from any active program. Normal
 If camera 2/3 are not available the hotkeys are ignored and not defined.
 
 
-## Command Line Options
-A few options can be set from the command line. Command-line switches override the settings in the registry.
+## PTZControl.exe command line options
+A few options can be set from the command line for the original Windows GUI
+application `PTZControl.exe`. Command-line switches override the settings in the
+registry. These switches are not `PTZControlConsole` syntax.
 
 **-device:"name of device"**
 The device option can be used to specify a name component of a camera to be used for control. 
