@@ -7,6 +7,15 @@ PTZ cameras and keeps the original Windows GUI application available. The fork
 adds a stronger focus on automation, command-line operation, release packaging,
 and future Bitfocus Companion integration.
 
+## Purpose of the command-line tool
+
+`PTZControlConsole` is intended for automation scenarios where camera control
+should be triggered from scripts, batch files, Stream Deck buttons, Bitfocus
+Companion actions, or other external control surfaces. It provides command-line
+verbs for camera discovery, camera selection, zoom, pan/tilt, presets, metadata,
+and diagnostics so PTZ camera actions can be integrated into existing production
+workflows.
+
 Important additions in this fork include:
 
 - A .NET-based `PTZControlConsole` command-line application.
