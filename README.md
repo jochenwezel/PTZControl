@@ -52,7 +52,6 @@ packaging, and cross-platform metadata work. See [LICENSE](LICENSE) and
 - [Generated CLI help](docs/generated/cli-help.md)
 - [Generated example output](docs/generated/example-output.md)
 - [Linux installation](install-linux.md)
-- [Bridge status](README_Bridge.md)
 
 ## Original Windows GUI documentation
 
