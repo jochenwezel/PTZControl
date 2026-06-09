@@ -6,7 +6,7 @@
         Height="440"
         MinWidth="520"
         MinHeight="400"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="Manual"
         KeyDown="Window_KeyDown">
   <Window.Styles>
     <Style Selector="TextBlock.title">

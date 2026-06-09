@@ -6,7 +6,7 @@
         Height="560"
         MinWidth="620"
         MinHeight="480"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="Manual"
         KeyDown="Window_KeyDown">
   <Window.Styles>
     <Style Selector="TextBlock.sectionTitle">
@@ -72,10 +72,16 @@
               <TextBlock Text="Presets and modes" Classes="sectionTitle" />
               <TextBlock Text="1..8 / NumPad 1..8" Classes="command" />
               <TextBlock Text="Restore the matching preset. In memory mode, save the current position to that preset." Classes="hint" />
-              <TextBlock Text="Home / Enter / NumPad 0" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Home / NumPad 0" Classes="command" Margin="0,8,0,0" />
               <TextBlock Text="Restore the selected camera's home position." Classes="hint" />
+              <TextBlock Text="D" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Restore driver default values for zoom, pan, and tilt." Classes="hint" />
               <TextBlock Text="M" Classes="command" Margin="0,8,0,0" />
               <TextBlock Text="Toggle memory mode. Press Esc to cancel memory mode." Classes="hint" />
+              <TextBlock Text="V / I" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Switch the live-control tabs to Move/Zoom or Picture." Classes="hint" />
+              <TextBlock Text="P" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Toggle the live preview window without taking focus away from PTZControl2." Classes="hint" />
               <TextBlock Text="/ / *" Classes="command" Margin="0,8,0,0" />
               <TextBlock Text="Open settings." Classes="hint" />
             </StackPanel>
@@ -100,6 +106,8 @@
               <TextBlock Text="Does not queue repeated movement actions. PTZControl2 waits until the key is released before the same key can trigger another action." Classes="hint" />
               <TextBlock Text="Holding a live-control button" Classes="command" Margin="0,8,0,0" />
               <TextBlock Text="Currently behaves like a single click. Continuous press-and-release movement like the original GUI is planned separately once the backend can model start/stop movement safely." Classes="hint" />
+              <TextBlock Text="Move/Zoom and Picture tabs" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Use V for Move/Zoom and I for Picture. The Picture tab controls brightness, contrast, sharpness, and saturation when the selected camera exposes these values." Classes="hint" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>

@@ -14,6 +14,8 @@
           <SolidColorBrush x:Key="AppStatusBorderBrush" Color="#CED6DF" />
           <SolidColorBrush x:Key="AppMemoryStatusBrush" Color="#FFF0D9" />
           <SolidColorBrush x:Key="AppMemoryStatusBorderBrush" Color="#E0A044" />
+          <SolidColorBrush x:Key="AppWarningStatusBrush" Color="#FFE4B8" />
+          <SolidColorBrush x:Key="AppWarningStatusBorderBrush" Color="#E1952A" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
           <SolidColorBrush x:Key="AppBackgroundBrush" Color="#171B20" />
@@ -25,6 +27,8 @@
           <SolidColorBrush x:Key="AppStatusBorderBrush" Color="#3A4652" />
           <SolidColorBrush x:Key="AppMemoryStatusBrush" Color="#3A2A12" />
           <SolidColorBrush x:Key="AppMemoryStatusBorderBrush" Color="#B9782E" />
+          <SolidColorBrush x:Key="AppWarningStatusBrush" Color="#4A3218" />
+          <SolidColorBrush x:Key="AppWarningStatusBorderBrush" Color="#D58A27" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
     </ResourceDictionary>

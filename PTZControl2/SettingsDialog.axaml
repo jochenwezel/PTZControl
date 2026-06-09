@@ -35,8 +35,19 @@
                     Content="Invert pan actions" />
           <CheckBox x:Name="InvertTiltCheckBox"
                     Content="Invert tilt actions" />
+          <Grid ColumnDefinitions="Auto,120,Auto" ColumnSpacing="10">
+            <TextBlock Text="Effective zoom raw max"
+                       VerticalAlignment="Center" />
+            <TextBox x:Name="EffectiveZoomRawMaxTextBox"
+                     Grid.Column="1"
+                     HorizontalContentAlignment="Center" />
+            <TextBlock Grid.Column="2"
+                       Text="optional"
+                       VerticalAlignment="Center"
+                       Classes="hint" />
+          </Grid>
           <TextBlock Classes="hint"
-                     Text="Use these options when the camera is mounted upside down or the desired operator direction differs from the device direction." />
+                     Text="Use pan/tilt inversion when the camera is mounted upside down or the desired operator direction differs from the device direction. Use effective zoom max when a webcam reports raw zoom values that no longer change the visible image." />
         </StackPanel>
       </TabItem>
 

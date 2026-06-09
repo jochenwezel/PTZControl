@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Microsoft.Win32;
 using PTZControl.Core;
 using PTZControl.Uvc;
@@ -22,6 +23,7 @@ public sealed partial class MainWindow : Window
     private const string OptionsRegistryPath = @"SOFTWARE\MRi-Software\PTZControl\Options";
     private const string InvertPanValueNameFormat = "PTZControl2InvertPan{0}";
     private const string InvertTiltValueNameFormat = "PTZControl2InvertTilt{0}";
+    private const string EffectiveZoomRawMaxValueNameFormat = "PTZControl2EffectiveZoomRawMax{0}";
     private const string ThemeModeValueName = "PTZControl2ThemeMode";
     private const string ShowOnlyLogitechCamerasValueName = "PTZControl2ShowOnlyLogitechCameras";
     private const string PreviewTopMostValueName = "PTZControl2PreviewTopMost";
@@ -36,10 +38,17 @@ public sealed partial class MainWindow : Window
     private readonly List<Button> _presetButtons = new();
     private readonly List<TextBlock> _presetLabels = new();
     private readonly HashSet<Key> _pressedActionKeys = new();
+    private readonly Dictionary<VideoProcessingProperty, PictureControls> _pictureControls = new();
+    private readonly HashSet<string> _presetUnsupportedCameraKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly StartupOptions _startupOptions;
+    private readonly DispatcherTimer _successStatusClearTimer;
     private Border _statusBorder = null!;
     private ComboBox _cameraSelector = null!;
     private TextBlock _statusText = null!;
+    private Button _moveZoomTabButton = null!;
+    private Button _pictureTabButton = null!;
+    private StackPanel _moveZoomTabPanel = null!;
+    private StackPanel _pictureTabPanel = null!;
     private Slider _stepSlider = null!;
     private TextBlock _stepValueText = null!;
     private Button _memoryButton = null!;
@@ -52,9 +61,15 @@ public sealed partial class MainWindow : Window
     private Button _zoomInButton = null!;
     private Button _zoomOutButton = null!;
     private Button _previewButton = null!;
+    private TextBlock _pictureStatusText = null!;
     private DirectShowPreviewSession? _previewSession;
+    private CameraInfoDialog? _cameraInfoDialog;
+    private HelpDialog? _helpDialog;
+    private AboutDialog? _aboutDialog;
+    private int _ownedWindowOffsetIndex;
     private bool _invertPan;
     private bool _invertTilt;
+    private int? _effectiveZoomRawMax;
     private bool _logitechControl;
     private bool _showOnlyLogitechCameras;
     private bool _previewTopMost;
@@ -63,14 +78,22 @@ public sealed partial class MainWindow : Window
     private int _motorTime = 70;
     private string _themeMode = "System";
     private bool _memoryMode;
+    private bool _loadingPictureControls;
     private string? _startupSelectionWarning;
 
     private sealed record CameraListItem(int Slot, CameraInfo Camera);
+
+    private sealed record PictureControls(
+        Slider Slider,
+        TextBlock ValueText,
+        int DefaultValue,
+        VideoProcessingProperty Property);
 
     private sealed record CameraCapabilities(
         bool Zoom,
         bool Pan,
         bool Tilt,
+        bool Presets,
         bool? HomeResult,
         string? ZoomError,
         string? PanError,
@@ -79,7 +102,6 @@ public sealed partial class MainWindow : Window
         public bool Move => Pan || Tilt;
         public bool Home => HomeResult ?? (Pan && Tilt);
         public bool DriverDefault => Zoom && Pan && Tilt;
-        public bool Presets => Zoom || Pan || Tilt;
     }
 
     public MainWindow()
@@ -90,6 +112,11 @@ public sealed partial class MainWindow : Window
     public MainWindow(StartupOptions startupOptions)
     {
         _startupOptions = startupOptions;
+        _successStatusClearTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(5)
+        };
+        _successStatusClearTimer.Tick += SuccessStatusClearTimer_Tick;
         InitializeComponent();
         Opened += (_, _) => RefreshCameras();
     }
@@ -103,6 +130,14 @@ public sealed partial class MainWindow : Window
             ?? throw new InvalidOperationException("StatusBorder control not found.");
         _statusText = this.FindControl<TextBlock>("StatusText")
             ?? throw new InvalidOperationException("StatusText control not found.");
+        _moveZoomTabButton = this.FindControl<Button>("MoveZoomTabButton")
+            ?? throw new InvalidOperationException("MoveZoomTabButton control not found.");
+        _pictureTabButton = this.FindControl<Button>("PictureTabButton")
+            ?? throw new InvalidOperationException("PictureTabButton control not found.");
+        _moveZoomTabPanel = this.FindControl<StackPanel>("MoveZoomTabPanel")
+            ?? throw new InvalidOperationException("MoveZoomTabPanel control not found.");
+        _pictureTabPanel = this.FindControl<StackPanel>("PictureTabPanel")
+            ?? throw new InvalidOperationException("PictureTabPanel control not found.");
         _stepSlider = this.FindControl<Slider>("StepSlider")
             ?? throw new InvalidOperationException("StepSlider control not found.");
         _stepValueText = this.FindControl<TextBlock>("StepValueText")
@@ -127,6 +162,12 @@ public sealed partial class MainWindow : Window
             ?? throw new InvalidOperationException("ZoomOutButton control not found.");
         _previewButton = this.FindControl<Button>("PreviewButton")
             ?? throw new InvalidOperationException("PreviewButton control not found.");
+        _pictureStatusText = this.FindControl<TextBlock>("PictureStatusText")
+            ?? throw new InvalidOperationException("PictureStatusText control not found.");
+        AddPictureControls(VideoProcessingProperty.Brightness, "BrightnessSlider", "BrightnessValueText");
+        AddPictureControls(VideoProcessingProperty.Contrast, "ContrastSlider", "ContrastValueText");
+        AddPictureControls(VideoProcessingProperty.Sharpness, "SharpnessSlider", "SharpnessValueText");
+        AddPictureControls(VideoProcessingProperty.Saturation, "SaturationSlider", "SaturationValueText");
         _previewButton.IsVisible = OperatingSystem.IsWindows();
         for (var preset = 1; preset <= 8; preset++)
         {
@@ -146,8 +187,38 @@ public sealed partial class MainWindow : Window
         };
 
         LoadSettings();
-        Closed += (_, _) => ClosePreviewSession();
-        Activated += async (_, _) => await RefreshPreviewSessionStateAfterActivation();
+        Closed += (_, _) =>
+        {
+            ClosePreviewSession();
+            _cameraInfoDialog?.Close();
+            _helpDialog?.Close();
+            _aboutDialog?.Close();
+        };
+    }
+
+    private void AddPictureControls(VideoProcessingProperty property, string sliderName, string valueTextName)
+    {
+        var slider = this.FindControl<Slider>(sliderName)
+            ?? throw new InvalidOperationException($"{sliderName} control not found.");
+        var valueText = this.FindControl<TextBlock>(valueTextName)
+            ?? throw new InvalidOperationException($"{valueTextName} control not found.");
+        _pictureControls[property] = new PictureControls(slider, valueText, 0, property);
+    }
+
+    private void MoveZoomTabButton_Click(object? sender, RoutedEventArgs e) => SelectLiveControlTab(picture: false);
+
+    private void PictureTabButton_Click(object? sender, RoutedEventArgs e)
+    {
+        SelectLiveControlTab(picture: true);
+        RefreshPictureControls();
+    }
+
+    private void SelectLiveControlTab(bool picture)
+    {
+        _moveZoomTabPanel.IsVisible = !picture;
+        _pictureTabPanel.IsVisible = picture;
+        _moveZoomTabButton.Classes.Set("selected", !picture);
+        _pictureTabButton.Classes.Set("selected", picture);
     }
 
     private void RefreshButton_Click(object? sender, RoutedEventArgs e)
@@ -162,19 +233,30 @@ public sealed partial class MainWindow : Window
         LoadSelectedCameraSettings();
         UpdatePresetLabels();
         var capabilityStatus = UpdateSelectedCameraCapabilities();
-        _statusText.Text = TryGetSelectedCamera(out var camera)
+        RefreshPictureControls();
+        SetStatus(TryGetSelectedCamera(out var camera)
             ? string.IsNullOrWhiteSpace(capabilityStatus)
                 ? $"Selected camera: {camera.Name}"
                 : $"Selected camera: {camera.Name}. {capabilityStatus}"
-            : "Select a camera.";
+            : "Select a camera.");
     }
 
-    private async void ShowCameraInfoButton_Click(object? sender, RoutedEventArgs e)
+    private void ShowCameraInfoButton_Click(object? sender, RoutedEventArgs e)
     {
         CancelMemoryModeForOtherAction();
-        var info = BuildCameraInfoText();
-        var dialog = new CameraInfoDialog { Info = info };
-        await dialog.ShowDialog(this);
+        if (_cameraInfoDialog is not null)
+        {
+            _cameraInfoDialog.Activate();
+            return;
+        }
+
+        _cameraInfoDialog = new CameraInfoDialog
+        {
+            InfoProvider = BuildCameraInfoText
+        };
+        _cameraInfoDialog.Closed += (_, _) => _cameraInfoDialog = null;
+        PositionOwnedWindow(_cameraInfoDialog);
+        _cameraInfoDialog.Show(this);
     }
 
     private void PreviewButton_Click(object? sender, RoutedEventArgs e)
@@ -182,7 +264,7 @@ public sealed partial class MainWindow : Window
         CancelMemoryModeForOtherAction();
         if (!OperatingSystem.IsWindows())
         {
-            _statusText.Text = "Live preview is only available on Windows.";
+            SetWarning("Live preview is only available on Windows.");
             return;
         }
 
@@ -197,13 +279,21 @@ public sealed partial class MainWindow : Window
             if (_previewSession is not null)
             {
                 ClosePreviewSession();
-                _statusText.Text = "Live preview closed.";
+                SetStatus("Live preview closed.");
                 return;
             }
 
-            _previewSession = DirectShowPreviewSession.Start(GetCameraKey(camera), $"PTZControl2 Preview - {camera.Name}", _previewTopMost);
+            _previewSession = DirectShowPreviewSession.Start(
+                GetCameraKey(camera),
+                $"PTZControl2 Preview - {camera.Name}",
+                _previewTopMost,
+                () => Dispatcher.UIThread.Post(() =>
+                {
+                    ClosePreviewSession();
+                    SetStatus("Live preview closed.");
+                }));
             _previewButton.Content = "Close Preview";
-            _statusText.Text = $"Live preview opened: {camera.Name}";
+            SetStatus($"Live preview opened: {camera.Name}");
         }
         catch (Exception ex)
         {
@@ -212,18 +302,34 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async void HelpButton_Click(object? sender, RoutedEventArgs e)
+    private void HelpButton_Click(object? sender, RoutedEventArgs e)
     {
         CancelMemoryModeForOtherAction();
-        var dialog = new HelpDialog();
-        await dialog.ShowDialog(this);
+        if (_helpDialog is not null)
+        {
+            _helpDialog.Activate();
+            return;
+        }
+
+        _helpDialog = new HelpDialog();
+        _helpDialog.Closed += (_, _) => _helpDialog = null;
+        PositionOwnedWindow(_helpDialog);
+        _helpDialog.Show(this);
     }
 
-    private async void AboutButton_Click(object? sender, RoutedEventArgs e)
+    private void AboutButton_Click(object? sender, RoutedEventArgs e)
     {
         CancelMemoryModeForOtherAction();
-        var dialog = new AboutDialog();
-        await dialog.ShowDialog(this);
+        if (_aboutDialog is not null)
+        {
+            _aboutDialog.Activate();
+            return;
+        }
+
+        _aboutDialog = new AboutDialog();
+        _aboutDialog.Closed += (_, _) => _aboutDialog = null;
+        PositionOwnedWindow(_aboutDialog);
+        _aboutDialog.Show(this);
     }
 
     private void PresetButton_Click(object? sender, RoutedEventArgs e)
@@ -242,11 +348,11 @@ public sealed partial class MainWindow : Window
         if (_memoryMode)
         {
             SetMemoryMode(false);
-            RunCameraAction($"Save preset {preset}", camera => _backend.SavePreset(camera, preset));
+            RunPresetCameraAction($"Save preset {preset}", camera => _backend.SavePreset(camera, preset));
             return;
         }
 
-        RunCameraAction($"Restore preset {preset}", camera => _backend.RestorePreset(camera, preset));
+        RunPresetCameraAction($"Restore preset {preset}", camera => _backend.RestorePreset(camera, preset));
     }
 
     private void TiltUpButton_Click(object? sender, RoutedEventArgs e)
@@ -282,13 +388,13 @@ public sealed partial class MainWindow : Window
     private void ZoomOutButton_Click(object? sender, RoutedEventArgs e)
     {
         if (IsActionAvailable(_zoomOutButton, "Zoom is not available for the selected camera."))
-            RunCameraAction($"Zoom out {StepPercent}", camera => ChangeZoom(camera, -StepPercent));
+            RunZoomAction("Zoom out", -StepPercent);
     }
 
     private void ZoomInButton_Click(object? sender, RoutedEventArgs e)
     {
         if (IsActionAvailable(_zoomInButton, "Zoom is not available for the selected camera."))
-            RunCameraAction($"Zoom in {StepPercent}", camera => ChangeZoom(camera, StepPercent));
+            RunZoomAction("Zoom in", StepPercent);
     }
 
     private void DefaultAllButton_Click(object? sender, RoutedEventArgs e)
@@ -320,6 +426,7 @@ public sealed partial class MainWindow : Window
             CameraLabel = camera is null ? "No camera selected." : $"Camera slot {slotIndex + 1}: {camera.Name}",
             InvertPan = slotIndex >= 0 && _invertPan,
             InvertTilt = slotIndex >= 0 && _invertTilt,
+            EffectiveZoomRawMax = slotIndex >= 0 ? _effectiveZoomRawMax : null,
             LogitechControl = _logitechControl,
             MotorTime = _motorTime,
             ThemeMode = _themeMode,
@@ -335,6 +442,7 @@ public sealed partial class MainWindow : Window
             {
                 _invertPan = dialog.InvertPan;
                 _invertTilt = dialog.InvertTilt;
+                _effectiveZoomRawMax = dialog.EffectiveZoomRawMax;
             }
 
             _logitechControl = dialog.LogitechControl;
@@ -346,7 +454,7 @@ public sealed partial class MainWindow : Window
             SaveSettings(slotIndex, dialog.PresetNames);
             ApplyTheme();
             RefreshCameras();
-            _statusText.Text = "Settings saved.";
+            SetStatus("Settings saved.");
         }
     }
 
@@ -382,11 +490,15 @@ public sealed partial class MainWindow : Window
             if (IsRedundantHomeStartupWarning(resetStatus, capabilityStatus))
                 resetStatus = string.Empty;
 
-            _statusText.Text = string.IsNullOrWhiteSpace(resetStatus)
+            var refreshStatus = string.IsNullOrWhiteSpace(resetStatus)
                 ? startupStatus
                 : $"{startupStatus} {resetStatus}";
             if (!string.IsNullOrWhiteSpace(capabilityStatus))
-                _statusText.Text = $"{_statusText.Text} {capabilityStatus}";
+                refreshStatus = $"{refreshStatus} {capabilityStatus}";
+            if (!string.IsNullOrWhiteSpace(resetStatus) || capabilityStatus.Contains("except", StringComparison.Ordinal) || capabilityStatus.Contains("none", StringComparison.Ordinal))
+                SetWarning(refreshStatus);
+            else
+                SetStatus(refreshStatus);
         }
         catch (Exception ex)
         {
@@ -405,12 +517,19 @@ public sealed partial class MainWindow : Window
         {
             $"Device Name: {camera.Name}",
             $"Device Path: {camera.MonikerString}",
+            $"Effective Zoom Raw Max: {(_effectiveZoomRawMax?.ToString() ?? "not set")}",
             ""
         };
 
         AppendRange(lines, cameraKey, "Zoom", CameraProperty.Zoom);
         AppendRange(lines, cameraKey, "Pan", CameraProperty.Pan);
         AppendRange(lines, cameraKey, "Tilt", CameraProperty.Tilt);
+        lines.Add("");
+        lines.Add("Video processing:");
+        AppendVideoProcessingRange(lines, cameraKey, "Brightness", VideoProcessingProperty.Brightness);
+        AppendVideoProcessingRange(lines, cameraKey, "Contrast", VideoProcessingProperty.Contrast);
+        AppendVideoProcessingRange(lines, cameraKey, "Sharpness", VideoProcessingProperty.Sharpness);
+        AppendVideoProcessingRange(lines, cameraKey, "Saturation", VideoProcessingProperty.Saturation);
 
         return string.Join(Environment.NewLine, lines);
     }
@@ -427,6 +546,114 @@ public sealed partial class MainWindow : Window
         {
             lines.Add($"{label}: not available ({ex.Message})");
         }
+    }
+
+    private void AppendVideoProcessingRange(List<string> lines, string camera, string label, VideoProcessingProperty property)
+    {
+        try
+        {
+            var range = _backend.GetVideoProcessingRange(camera, property);
+            var current = _backend.GetVideoProcessingValue(camera, property);
+            lines.Add($"{label}: {range.min}..{range.max}, step {range.step}, default {range.def}, current {current}");
+        }
+        catch (Exception ex)
+        {
+            lines.Add($"{label}: not available ({ex.Message})");
+        }
+    }
+
+    private void RefreshPictureControls()
+    {
+        if (!TryGetSelectedCameraQuiet(out var camera))
+        {
+            foreach (var controls in _pictureControls.Values)
+            {
+                controls.Slider.IsEnabled = false;
+                controls.ValueText.Text = "n/a";
+            }
+
+            _pictureStatusText.Text = "No camera selected.";
+            return;
+        }
+
+        var cameraKey = GetCameraKey(camera);
+        _loadingPictureControls = true;
+        try
+        {
+            var unavailable = new List<string>();
+            foreach (var property in _pictureControls.Keys.ToList())
+            {
+                var controls = _pictureControls[property];
+                try
+                {
+                    var range = _backend.GetVideoProcessingRange(cameraKey, property);
+                    var current = _backend.GetVideoProcessingValue(cameraKey, property);
+                    controls = controls with { DefaultValue = range.def };
+                    _pictureControls[property] = controls;
+                    controls.Slider.Minimum = range.min;
+                    controls.Slider.Maximum = range.max;
+                    controls.Slider.TickFrequency = Math.Max(1, range.step);
+                    controls.Slider.IsSnapToTickEnabled = range.step > 1;
+                    controls.Slider.Value = Math.Clamp(current, range.min, range.max);
+                    controls.Slider.IsEnabled = true;
+                    controls.ValueText.Text = current.ToString();
+                }
+                catch
+                {
+                    controls.Slider.IsEnabled = false;
+                    controls.ValueText.Text = "n/a";
+                    unavailable.Add(property.ToString().ToLowerInvariant());
+                }
+            }
+
+            _pictureStatusText.Text = unavailable.Count == 0
+                ? "Picture controls loaded."
+                : $"Unavailable: {string.Join(", ", unavailable)}.";
+        }
+        finally
+        {
+            _loadingPictureControls = false;
+        }
+    }
+
+    private void PictureSlider_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (_loadingPictureControls ||
+            e.Property != Slider.ValueProperty ||
+            sender is not Slider slider ||
+            !TryGetSelectedCameraQuiet(out var camera))
+        {
+            return;
+        }
+
+        var match = _pictureControls.Values.FirstOrDefault(controls => ReferenceEquals(controls.Slider, slider));
+        if (match is null)
+            return;
+
+        var value = (int)Math.Round(slider.Value);
+        match.ValueText.Text = value.ToString();
+        try
+        {
+            _backend.SetVideoProcessingValue(GetCameraKey(camera), match.Property, value);
+            _pictureStatusText.Text = $"{match.Property}: {value}";
+        }
+        catch (Exception ex)
+        {
+            _pictureStatusText.Text = $"{match.Property}: {ex.Message}";
+        }
+    }
+
+    private void ResetPictureDefaultsButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (!TryGetSelectedCamera(out var camera))
+            return;
+
+        var cameraKey = GetCameraKey(camera);
+        foreach (var controls in _pictureControls.Values.Where(controls => controls.Slider.IsEnabled))
+            _backend.SetVideoProcessingValue(cameraKey, controls.Property, controls.DefaultValue);
+
+        RefreshPictureControls();
+        _pictureStatusText.Text = "Picture controls reset to defaults.";
     }
 
     private string UpdateSelectedCameraCapabilities()
@@ -451,6 +678,7 @@ public sealed partial class MainWindow : Window
             zoom.Supported,
             pan.Supported,
             tilt.Supported,
+            !_presetUnsupportedCameraKeys.Contains(camera),
             _startupHomeResults.TryGetValue(camera, out var startupHomeResult) ? startupHomeResult : null,
             zoom.Error,
             pan.Error,
@@ -547,18 +775,22 @@ public sealed partial class MainWindow : Window
         return !capabilityStatus.Contains("home", StringComparison.Ordinal);
     }
 
-    private void ChangeZoom(string camera, int deltaPercent)
+    private (int before, int after) ChangeZoom(string camera, int deltaPercent)
     {
-        var raw = AddPercentDelta(camera, CameraProperty.Zoom, deltaPercent);
-        _backend.SetPanTiltZoom(camera, zoom: raw);
-    }
+        var range = _backend.GetRange(camera, CameraProperty.Zoom);
+        var current = _backend.GetValue(camera, CameraProperty.Zoom);
+        var effectiveMax = _effectiveZoomRawMax is { } configuredMax
+            ? Math.Clamp(configuredMax, range.min, range.max)
+            : range.max;
+        var effectiveCurrent = Math.Clamp(current, range.min, effectiveMax);
+        var delta = (int)Math.Round((effectiveMax - range.min) * (deltaPercent / 100.0));
+        if (delta == 0 && deltaPercent != 0 && effectiveMax > range.min)
+            delta = Math.Sign(deltaPercent) * Math.Max(1, range.step);
 
-    private int AddPercentDelta(string camera, CameraProperty property, int deltaPercent)
-    {
-        var range = _backend.GetRange(camera, property);
-        var current = _backend.GetValue(camera, property);
-        var delta = (int)Math.Round((range.max - range.min) * (deltaPercent / 100.0));
-        return Math.Clamp(current + delta, range.min, range.max);
+        var zoom = Math.Clamp(effectiveCurrent + delta, range.min, effectiveMax);
+        _backend.SetPanTiltZoom(camera, zoom: zoom);
+        var after = _backend.GetValue(camera, CameraProperty.Zoom);
+        return (current, after);
     }
 
     private void RunCameraAction(string actionName, Action<string> action)
@@ -570,7 +802,7 @@ public sealed partial class MainWindow : Window
         {
             CancelMemoryModeForOtherAction();
             action(GetCameraKey(camera));
-            _statusText.Text = $"{actionName}: OK";
+            SetStatus($"{actionName}: OK");
         }
         catch (Exception ex)
         {
@@ -578,25 +810,82 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void RunZoomAction(string actionName, int deltaPercent)
+    {
+        if (!TryGetSelectedCamera(out var camera))
+            return;
+
+        try
+        {
+            CancelMemoryModeForOtherAction();
+            var (before, after) = ChangeZoom(GetCameraKey(camera), deltaPercent);
+            SetStatus($"{actionName}: OK (raw {before} -> {after})");
+        }
+        catch (Exception ex)
+        {
+            SetError(actionName, ex);
+        }
+    }
+
+    private void RunPresetCameraAction(string actionName, Action<string> action)
+    {
+        if (!TryGetSelectedCamera(out var camera))
+            return;
+
+        var cameraKey = GetCameraKey(camera);
+        try
+        {
+            CancelMemoryModeForOtherAction();
+            action(cameraKey);
+            SetStatus($"{actionName}: OK");
+        }
+        catch (Exception ex) when (IsPresetCapabilityFailure(ex))
+        {
+            _presetUnsupportedCameraKeys.Add(cameraKey);
+            ApplyCameraCapabilities(ProbeCameraCapabilities(cameraKey));
+            SetError($"{actionName} failed; preset commands disabled for this camera", ex);
+        }
+        catch (Exception ex)
+        {
+            SetError(actionName, ex);
+        }
+    }
+
+    private static bool IsPresetCapabilityFailure(Exception ex) =>
+        ex is NotSupportedException ||
+        ex.Message.Contains("extension unit", StringComparison.OrdinalIgnoreCase) ||
+        ex.Message.Contains("peripheral control", StringComparison.OrdinalIgnoreCase) ||
+        ex.Message.Contains("nicht gesetzt", StringComparison.OrdinalIgnoreCase) ||
+        ex.Message.Contains("nicht unterstützt", StringComparison.OrdinalIgnoreCase);
+
     private bool IsActionAvailable(Button button, string unavailableMessage)
     {
         if (button.IsEnabled)
             return true;
 
         CancelMemoryModeForOtherAction();
-        _statusText.Text = unavailableMessage;
+        SetWarning(unavailableMessage);
         return false;
     }
 
     private bool TryGetSelectedCamera(out CameraInfo camera)
     {
+        if (TryGetSelectedCameraQuiet(out camera))
+            return true;
+
+        camera = null!;
+        SetWarning(_cameraByLabel.Count == 0
+            ? "No camera available. Connect a camera and click Refresh."
+            : "Select a camera first.");
+        return false;
+    }
+
+    private bool TryGetSelectedCameraQuiet(out CameraInfo camera)
+    {
         if (_cameraSelector.SelectedItem is string label && _cameraByLabel.TryGetValue(label, out camera!))
             return true;
 
         camera = null!;
-        _statusText.Text = _cameraByLabel.Count == 0
-            ? "No camera available. Connect a camera and click Refresh."
-            : "Select a camera first.";
         return false;
     }
 
@@ -628,6 +917,14 @@ public sealed partial class MainWindow : Window
         return key?.GetValue(valueName) as string;
     }
 
+    private static int? TryReadNullableInt(object? value)
+    {
+        if (value is null)
+            return null;
+
+        return int.TryParse(Convert.ToString(value), out var result) ? result : null;
+    }
+
     private static string GetCameraKey(CameraInfo camera) =>
         string.IsNullOrWhiteSpace(camera.MonikerString) ? camera.Name : camera.MonikerString;
 
@@ -639,6 +936,7 @@ public sealed partial class MainWindow : Window
 
     private void SetMemoryMode(bool enabled)
     {
+        _successStatusClearTimer.Stop();
         _memoryMode = enabled;
         _memoryButton.Background = enabled
             ? Brush.Parse("#B9782E")
@@ -698,6 +996,7 @@ public sealed partial class MainWindow : Window
         using var key = Registry.CurrentUser.OpenSubKey(SettingsRegistryPath);
         _invertPan = Convert.ToInt32(key?.GetValue(string.Format(InvertPanValueNameFormat, slot), 0)) != 0;
         _invertTilt = Convert.ToInt32(key?.GetValue(string.Format(InvertTiltValueNameFormat, slot), 0)) != 0;
+        _effectiveZoomRawMax = TryReadNullableInt(key?.GetValue(string.Format(EffectiveZoomRawMaxValueNameFormat, slot)));
     }
 
     private void SaveSettings(int cameraSlotIndex, IReadOnlyList<string> presetNames)
@@ -719,6 +1018,11 @@ public sealed partial class MainWindow : Window
             var slot = cameraSlotIndex + 1;
             key?.SetValue(string.Format(InvertPanValueNameFormat, slot), _invertPan ? 1 : 0, RegistryValueKind.DWord);
             key?.SetValue(string.Format(InvertTiltValueNameFormat, slot), _invertTilt ? 1 : 0, RegistryValueKind.DWord);
+            var effectiveZoomRawMaxValueName = string.Format(EffectiveZoomRawMaxValueNameFormat, slot);
+            if (_effectiveZoomRawMax is { } effectiveZoomRawMax)
+                key?.SetValue(effectiveZoomRawMaxValueName, effectiveZoomRawMax, RegistryValueKind.DWord);
+            else
+                key?.DeleteValue(effectiveZoomRawMaxValueName, throwOnMissingValue: false);
             for (var preset = 1; preset <= 8; preset++)
             {
                 var valueName = $"Tooltip{preset + cameraSlotIndex * 100}";
@@ -789,7 +1093,31 @@ public sealed partial class MainWindow : Window
 
     private void SetError(string context, Exception ex)
     {
-        _statusText.Text = $"{context}: {ex.Message}";
+        SetWarning($"{context}: {ex.Message}");
+    }
+
+    private void SetStatus(string message)
+    {
+        _statusBorder.Background = GetBrushResource("AppStatusBrush");
+        _statusBorder.BorderBrush = GetBrushResource("AppStatusBorderBrush");
+        _statusText.Text = message;
+        _successStatusClearTimer.Stop();
+        if (!string.IsNullOrWhiteSpace(message))
+            _successStatusClearTimer.Start();
+    }
+
+    private void SetWarning(string message)
+    {
+        _successStatusClearTimer.Stop();
+        _statusBorder.Background = GetBrushResource("AppWarningStatusBrush");
+        _statusBorder.BorderBrush = GetBrushResource("AppWarningStatusBorderBrush");
+        _statusText.Text = message;
+    }
+
+    private void SuccessStatusClearTimer_Tick(object? sender, EventArgs e)
+    {
+        _successStatusClearTimer.Stop();
+        _statusText.Text = string.Empty;
     }
 
     private void ClosePreviewSession()
@@ -800,30 +1128,12 @@ public sealed partial class MainWindow : Window
             _previewButton.Content = "Preview";
     }
 
-    private void RefreshPreviewSessionState(bool bringToFront)
+    private void PositionOwnedWindow(Window window)
     {
-        if (_previewSession is null)
-            return;
-
-        if (!_previewSession.IsAlive)
-        {
-            ClosePreviewSession();
-            _statusText.Text = "Live preview closed.";
-            return;
-        }
-
-        if (bringToFront)
-            _previewSession.BringToFront();
-    }
-
-    private async Task RefreshPreviewSessionStateAfterActivation()
-    {
-        await Task.Delay(250);
-
-        if (!IsActive)
-            return;
-
-        RefreshPreviewSessionState(bringToFront: true);
+        const int baseOffset = 36;
+        const int cascadeStep = 26;
+        var cascadeOffset = baseOffset + (_ownedWindowOffsetIndex++ % 5) * cascadeStep;
+        window.Position = new PixelPoint(Position.X + cascadeOffset, Position.Y + cascadeOffset);
     }
 
     private IBrush GetBrushResource(string key)
@@ -962,9 +1272,11 @@ public sealed partial class MainWindow : Window
         switch (e.Key)
         {
             case Key.Home:
-            case Key.Enter:
             case Key.NumPad0:
                 HomeButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.D:
+                DefaultAllButton_Click(this, new RoutedEventArgs());
                 return true;
             case Key.Left:
                 PanLeftButton_Click(this, new RoutedEventArgs());
@@ -980,6 +1292,16 @@ public sealed partial class MainWindow : Window
                 return true;
             case Key.M:
                 MemoryButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.V:
+                SelectLiveControlTab(picture: false);
+                return true;
+            case Key.I:
+                SelectLiveControlTab(picture: true);
+                RefreshPictureControls();
+                return true;
+            case Key.P:
+                PreviewButton_Click(this, new RoutedEventArgs());
                 return true;
             case Key.Add:
             case Key.OemPlus:
@@ -1024,12 +1346,12 @@ public sealed partial class MainWindow : Window
             if (_displayedCameras[index].Slot == slot)
             {
                 _cameraSelector.SelectedIndex = index;
-                _statusText.Text = $"Selected camera slot {slot}.";
+                SetStatus($"Selected camera slot {slot}.");
                 return;
             }
         }
 
-        _statusText.Text = $"Camera slot {slot} is not available.";
+        SetWarning($"Camera slot {slot} is not available.");
     }
 
     private int GetSelectedCameraSlotIndex()
@@ -1062,9 +1384,9 @@ public sealed partial class MainWindow : Window
     }
 
     private static bool IsHandledHotkey(Key key) => key is
-        Key.Home or Key.Enter or Key.NumPad0 or
+        Key.Home or Key.NumPad0 or
         Key.Left or Key.Right or Key.Up or Key.Down or
-        Key.M or
+        Key.D or Key.M or Key.V or Key.I or Key.P or
         Key.Add or Key.OemPlus or Key.PageUp or
         Key.Subtract or Key.OemMinus or Key.PageDown or
         Key.Divide or Key.Multiply or

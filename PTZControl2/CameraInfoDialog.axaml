@@ -6,21 +6,36 @@
         Height="420"
         MinWidth="480"
         MinHeight="320"
-        WindowStartupLocation="CenterOwner">
-  <Grid Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="12">
-    <TextBlock Text="Camera information"
-               FontSize="20"
-               FontWeight="SemiBold" />
+        WindowStartupLocation="Manual">
+  <Grid Margin="16" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <TextBlock Text="Camera monitor"
+                 FontSize="20"
+                 FontWeight="SemiBold" />
+      <TextBlock x:Name="RefreshStatusText"
+                 VerticalAlignment="Center"
+                 Foreground="{DynamicResource AppMutedTextBrush}" />
+    </StackPanel>
+    <TextBlock Grid.Row="1"
+               Text="Read-only refresh every second. Current values are useful for checking driver state while using live controls."
+               Foreground="{DynamicResource AppMutedTextBrush}"
+               TextWrapping="Wrap" />
     <TextBox x:Name="InfoText"
-             Grid.Row="1"
+             Grid.Row="2"
              IsReadOnly="True"
              AcceptsReturn="True"
              TextWrapping="Wrap"
              FontFamily="Consolas" />
-    <Button Grid.Row="2"
-            Content="Close"
-            HorizontalAlignment="Right"
-            MinWidth="90"
-            Click="CloseButton_Click" />
+    <StackPanel Grid.Row="3"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="8">
+      <Button Content="Refresh now"
+              MinWidth="110"
+              Click="RefreshNowButton_Click" />
+      <Button Content="Close"
+              MinWidth="90"
+              Click="CloseButton_Click" />
+    </StackPanel>
   </Grid>
 </Window>

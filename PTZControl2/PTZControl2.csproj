@@ -16,6 +16,9 @@
     <ProjectReference Include="..\PTZControl.Uvc\PTZControl.Uvc.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="..\PTZControl\res\PTZControl.ico" Link="PTZControl.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.0.4" />
     <PackageReference Include="Avalonia.Desktop" Version="12.0.4" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.4" />

@@ -11,6 +11,7 @@ public sealed partial class SettingsDialog : Window
 {
     private CheckBox _invertPanCheckBox = null!;
     private CheckBox _invertTiltCheckBox = null!;
+    private TextBox _effectiveZoomRawMaxTextBox = null!;
     private CheckBox _logitechControlCheckBox = null!;
     private CheckBox _showOnlyLogitechCamerasCheckBox = null!;
     private CheckBox _previewTopMostCheckBox = null!;
@@ -36,6 +37,12 @@ public sealed partial class SettingsDialog : Window
     {
         get => _invertTiltCheckBox.IsChecked == true;
         set => _invertTiltCheckBox.IsChecked = value;
+    }
+
+    public int? EffectiveZoomRawMax
+    {
+        get => int.TryParse(_effectiveZoomRawMaxTextBox.Text, out var value) ? value : null;
+        set => _effectiveZoomRawMaxTextBox.Text = value?.ToString() ?? string.Empty;
     }
 
     public bool LogitechControl
@@ -103,6 +110,8 @@ public sealed partial class SettingsDialog : Window
             ?? throw new InvalidOperationException("InvertPanCheckBox control not found.");
         _invertTiltCheckBox = this.FindControl<CheckBox>("InvertTiltCheckBox")
             ?? throw new InvalidOperationException("InvertTiltCheckBox control not found.");
+        _effectiveZoomRawMaxTextBox = this.FindControl<TextBox>("EffectiveZoomRawMaxTextBox")
+            ?? throw new InvalidOperationException("EffectiveZoomRawMaxTextBox control not found.");
         _logitechControlCheckBox = this.FindControl<CheckBox>("LogitechControlCheckBox")
             ?? throw new InvalidOperationException("LogitechControlCheckBox control not found.");
         _showOnlyLogitechCamerasCheckBox = this.FindControl<CheckBox>("ShowOnlyLogitechCamerasCheckBox")

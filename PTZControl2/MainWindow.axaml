@@ -69,6 +69,23 @@
       <Setter Property="FontSize" Value="12" />
       <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}" />
     </Style>
+    <Style Selector="Button.tabTitle">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0,0,0,4" />
+      <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Button.tabTitle:selected">
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,2" />
+      <Setter Property="BorderBrush" Value="#0078D4" />
+    </Style>
+    <Style Selector="TextBlock.tabTitleText">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    </Style>
   </Window.Styles>
 
   <Grid Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="12">
@@ -189,68 +206,114 @@
       </Border>
 
       <Border Grid.Column="1" Classes="panel" Width="430">
-        <StackPanel Spacing="12">
-          <TextBlock Text="Live control" Classes="sectionTitle" HorizontalAlignment="Center" />
+        <Grid RowDefinitions="Auto,*" RowSpacing="8">
+          <StackPanel Orientation="Horizontal" Spacing="22">
+            <Button x:Name="MoveZoomTabButton"
+                    Classes="tabTitle selected"
+                    Click="MoveZoomTabButton_Click">
+              <TextBlock Text="Move/Zoom" Classes="tabTitleText" />
+            </Button>
+            <Button x:Name="PictureTabButton"
+                    Classes="tabTitle"
+                    Click="PictureTabButton_Click">
+              <TextBlock Text="Picture" Classes="tabTitleText" />
+            </Button>
+          </StackPanel>
+          <Grid Grid.Row="1">
+            <StackPanel x:Name="MoveZoomTabPanel" Spacing="9" Margin="0,4,0,0">
+              <Grid ColumnDefinitions="76,76,76,28,76" RowDefinitions="76,76,76" ColumnSpacing="8" RowSpacing="8" HorizontalAlignment="Center">
+                <Button x:Name="TiltUpButton" Grid.Column="1" Grid.Row="0" Classes="motion" Click="TiltUpButton_Click" ToolTip.Tip="Tilt up by the selected step size.">
+                  <StackPanel>
+                    <TextBlock Text="▲" Classes="icon" />
+                    <TextBlock Text="Tilt" Classes="caption" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="PanLeftButton" Grid.Column="0" Grid.Row="1" Classes="motion" Click="PanLeftButton_Click" ToolTip.Tip="Pan left by the selected step size.">
+                  <StackPanel>
+                    <TextBlock Text="◀" Classes="icon" />
+                    <TextBlock Text="Pan" Classes="caption" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="PanRightButton" Grid.Column="2" Grid.Row="1" Classes="motion" Click="PanRightButton_Click" ToolTip.Tip="Pan right by the selected step size.">
+                  <StackPanel>
+                    <TextBlock Text="▶" Classes="icon" />
+                    <TextBlock Text="Pan" Classes="caption" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="TiltDownButton" Grid.Column="1" Grid.Row="2" Classes="motion" Click="TiltDownButton_Click" ToolTip.Tip="Tilt down by the selected step size.">
+                  <StackPanel>
+                    <TextBlock Text="▼" Classes="icon" />
+                    <TextBlock Text="Tilt" Classes="caption" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="ZoomInButton" Grid.Column="4" Grid.Row="0" Classes="zoom" Click="ZoomInButton_Click" ToolTip.Tip="Increase zoom by the selected step size.">
+                  <StackPanel>
+                    <TextBlock Text="+" Classes="icon" />
+                    <TextBlock Text="Zoom in" Classes="caption" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="ZoomOutButton" Grid.Column="4" Grid.Row="2" Classes="zoom" Click="ZoomOutButton_Click" ToolTip.Tip="Decrease zoom by the selected step size.">
+                  <StackPanel>
+                    <TextBlock Text="−" Classes="icon" />
+                    <TextBlock Text="Zoom out" Classes="caption" />
+                  </StackPanel>
+                </Button>
+              </Grid>
 
-          <Grid ColumnDefinitions="76,76,76,28,76" RowDefinitions="76,76,76" ColumnSpacing="8" RowSpacing="8" HorizontalAlignment="Center">
-            <Button x:Name="TiltUpButton" Grid.Column="1" Grid.Row="0" Classes="motion" Click="TiltUpButton_Click" ToolTip.Tip="Tilt up by the selected step size.">
-              <StackPanel>
-                <TextBlock Text="▲" Classes="icon" />
-                <TextBlock Text="Tilt" Classes="caption" />
-              </StackPanel>
-            </Button>
-            <Button x:Name="PanLeftButton" Grid.Column="0" Grid.Row="1" Classes="motion" Click="PanLeftButton_Click" ToolTip.Tip="Pan left by the selected step size.">
-              <StackPanel>
-                <TextBlock Text="◀" Classes="icon" />
-                <TextBlock Text="Pan" Classes="caption" />
-              </StackPanel>
-            </Button>
-            <Button x:Name="PanRightButton" Grid.Column="2" Grid.Row="1" Classes="motion" Click="PanRightButton_Click" ToolTip.Tip="Pan right by the selected step size.">
-              <StackPanel>
-                <TextBlock Text="▶" Classes="icon" />
-                <TextBlock Text="Pan" Classes="caption" />
-              </StackPanel>
-            </Button>
-            <Button x:Name="TiltDownButton" Grid.Column="1" Grid.Row="2" Classes="motion" Click="TiltDownButton_Click" ToolTip.Tip="Tilt down by the selected step size.">
-              <StackPanel>
-                <TextBlock Text="▼" Classes="icon" />
-                <TextBlock Text="Tilt" Classes="caption" />
-              </StackPanel>
-            </Button>
-            <Button x:Name="ZoomInButton" Grid.Column="4" Grid.Row="0" Classes="zoom" Click="ZoomInButton_Click" ToolTip.Tip="Increase zoom by the selected step size.">
-              <StackPanel>
-                <TextBlock Text="+" Classes="icon" />
-                <TextBlock Text="Zoom in" Classes="caption" />
-              </StackPanel>
-            </Button>
-            <Button x:Name="ZoomOutButton" Grid.Column="4" Grid.Row="2" Classes="zoom" Click="ZoomOutButton_Click" ToolTip.Tip="Decrease zoom by the selected step size.">
-              <StackPanel>
-                <TextBlock Text="−" Classes="icon" />
-                <TextBlock Text="Zoom out" Classes="caption" />
-              </StackPanel>
-            </Button>
+              <Grid RowDefinitions="Auto,Auto" RowSpacing="2" Margin="0,0,0,0">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="Step size" Classes="miniLabel" />
+                  <TextBlock x:Name="StepValueText"
+                             Grid.Column="1"
+                             Text="10"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource AppTextBrush}" />
+                </Grid>
+                <Slider x:Name="StepSlider"
+                        Grid.Row="1"
+                        MinWidth="360"
+                        Minimum="1"
+                        Maximum="30"
+                        TickFrequency="1"
+                        IsSnapToTickEnabled="False"
+                        Value="10"
+                        VerticalAlignment="Center" />
+              </Grid>
+            </StackPanel>
+            <StackPanel x:Name="PictureTabPanel" IsVisible="False" Margin="0,8,0,0" Spacing="10">
+              <Grid ColumnDefinitions="78,*,42" ColumnSpacing="8">
+                <TextBlock Text="Brightness" Classes="miniLabel" VerticalAlignment="Center" />
+                <Slider x:Name="BrightnessSlider" Grid.Column="1" PropertyChanged="PictureSlider_PropertyChanged" />
+                <TextBlock x:Name="BrightnessValueText" Grid.Column="2" Classes="miniLabel" TextAlignment="Right" VerticalAlignment="Center" />
+              </Grid>
+              <Grid ColumnDefinitions="78,*,42" ColumnSpacing="8">
+                <TextBlock Text="Contrast" Classes="miniLabel" VerticalAlignment="Center" />
+                <Slider x:Name="ContrastSlider" Grid.Column="1" PropertyChanged="PictureSlider_PropertyChanged" />
+                <TextBlock x:Name="ContrastValueText" Grid.Column="2" Classes="miniLabel" TextAlignment="Right" VerticalAlignment="Center" />
+              </Grid>
+              <Grid ColumnDefinitions="78,*,42" ColumnSpacing="8">
+                <TextBlock Text="Sharpness" Classes="miniLabel" VerticalAlignment="Center" />
+                <Slider x:Name="SharpnessSlider" Grid.Column="1" PropertyChanged="PictureSlider_PropertyChanged" />
+                <TextBlock x:Name="SharpnessValueText" Grid.Column="2" Classes="miniLabel" TextAlignment="Right" VerticalAlignment="Center" />
+              </Grid>
+              <Grid ColumnDefinitions="78,*,42" ColumnSpacing="8">
+                <TextBlock Text="Saturation" Classes="miniLabel" VerticalAlignment="Center" />
+                <Slider x:Name="SaturationSlider" Grid.Column="1" PropertyChanged="PictureSlider_PropertyChanged" />
+                <TextBlock x:Name="SaturationValueText" Grid.Column="2" Classes="miniLabel" TextAlignment="Right" VerticalAlignment="Center" />
+              </Grid>
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,4,0,0">
+                <TextBlock x:Name="PictureStatusText"
+                           Classes="miniLabel"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Content="Reset"
+                        Padding="12,4"
+                        Click="ResetPictureDefaultsButton_Click" />
+              </Grid>
+            </StackPanel>
           </Grid>
-
-          <Grid RowDefinitions="Auto,Auto" RowSpacing="4" Margin="0,6,0,0">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="Step size" Classes="miniLabel" />
-              <TextBlock x:Name="StepValueText"
-                         Grid.Column="1"
-                         Text="10"
-                         FontWeight="SemiBold"
-                         Foreground="{DynamicResource AppTextBrush}" />
-            </Grid>
-            <Slider x:Name="StepSlider"
-                    Grid.Row="1"
-                    MinWidth="360"
-                    Minimum="1"
-                    Maximum="30"
-                    TickFrequency="1"
-                    IsSnapToTickEnabled="False"
-                    Value="10"
-                    VerticalAlignment="Center" />
-          </Grid>
-        </StackPanel>
+        </Grid>
       </Border>
     </Grid>
 

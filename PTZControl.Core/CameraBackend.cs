@@ -15,7 +15,11 @@ public interface ICameraBackend
     void SetDirectShowCameraName(string devicePath, string friendlyName);
     (int min, int max, int step, int def) GetRange(string camera, CameraProperty property);
     int GetValue(string camera, CameraProperty property);
+    (int min, int max, int step, int def) GetVideoProcessingRange(string camera, VideoProcessingProperty property);
+    int GetVideoProcessingValue(string camera, VideoProcessingProperty property);
+    void SetVideoProcessingValue(string camera, VideoProcessingProperty property, int value);
     void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null);
+    void MoveRelativeZoom(string camera, int deltaPercent);
     void MoveRelativePanTilt(string camera, int? x = null, int? y = null);
     void RestoreHome(string camera, bool zoom, bool move);
     void RestoreDefault(string camera, bool zoom, bool pan, bool tilt);
@@ -91,8 +95,20 @@ public sealed class WindowsUvcCameraBackend : ICameraBackend
     public int GetValue(string camera, CameraProperty property) =>
         UvcCamera.GetValue(camera, property);
 
+    public (int min, int max, int step, int def) GetVideoProcessingRange(string camera, VideoProcessingProperty property) =>
+        UvcCamera.GetVideoProcessingRange(camera, property);
+
+    public int GetVideoProcessingValue(string camera, VideoProcessingProperty property) =>
+        UvcCamera.GetVideoProcessingValue(camera, property);
+
+    public void SetVideoProcessingValue(string camera, VideoProcessingProperty property, int value) =>
+        UvcCamera.SetVideoProcessingValue(camera, property, value);
+
     public void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null) =>
         UvcCamera.SetPanTiltZoom(camera, pan, tilt, zoom);
+
+    public void MoveRelativeZoom(string camera, int deltaPercent) =>
+        UvcCamera.MoveRelativeZoom(camera, deltaPercent);
 
     public void MoveRelativePanTilt(string camera, int? x = null, int? y = null) =>
         UvcCamera.MoveRelativePanTilt(camera, x, y);
@@ -159,6 +175,15 @@ public sealed class LinuxPreviewCameraBackend : ICameraBackend
         return control.Value;
     }
 
+    public (int min, int max, int step, int def) GetVideoProcessingRange(string camera, VideoProcessingProperty property) =>
+        throw new NotSupportedException("Linux video processing controls are not implemented yet.");
+
+    public int GetVideoProcessingValue(string camera, VideoProcessingProperty property) =>
+        throw new NotSupportedException("Linux video processing controls are not implemented yet.");
+
+    public void SetVideoProcessingValue(string camera, VideoProcessingProperty property, int value) =>
+        throw new NotSupportedException("Linux video processing controls are not implemented yet.");
+
     public void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null)
     {
         using var device = OpenCamera(camera);
@@ -175,6 +200,12 @@ public sealed class LinuxPreviewCameraBackend : ICameraBackend
         var pan = x is null ? (int?)null : AddDelta(camera, CameraProperty.Pan, x.Value);
         var tilt = y is null ? (int?)null : AddDelta(camera, CameraProperty.Tilt, y.Value);
         SetPanTiltZoom(camera, pan, tilt);
+    }
+
+    public void MoveRelativeZoom(string camera, int deltaPercent)
+    {
+        var zoom = AddDelta(camera, CameraProperty.Zoom, deltaPercent);
+        SetPanTiltZoom(camera, zoom: zoom);
     }
 
     public void RestoreHome(string camera, bool zoom, bool move) =>
@@ -207,6 +238,8 @@ public sealed class LinuxPreviewCameraBackend : ICameraBackend
         var range = GetRange(camera, property);
         var current = GetValue(camera, property);
         var delta = (int)Math.Round((range.max - range.min) * (deltaPercent / 100.0));
+        if (delta == 0 && deltaPercent != 0 && range.max > range.min)
+            delta = Math.Sign(deltaPercent) * Math.Max(1, range.step);
         return Math.Clamp(current + delta, range.min, range.max);
     }
 
@@ -340,7 +373,19 @@ public sealed class UnsupportedCameraBackend(string message) : ICameraBackend
     public int GetValue(string camera, CameraProperty property) =>
         throw new NotSupportedException(message);
 
+    public (int min, int max, int step, int def) GetVideoProcessingRange(string camera, VideoProcessingProperty property) =>
+        throw new NotSupportedException(message);
+
+    public int GetVideoProcessingValue(string camera, VideoProcessingProperty property) =>
+        throw new NotSupportedException(message);
+
+    public void SetVideoProcessingValue(string camera, VideoProcessingProperty property, int value) =>
+        throw new NotSupportedException(message);
+
     public void SetPanTiltZoom(string camera, int? pan = null, int? tilt = null, int? zoom = null) =>
+        throw new NotSupportedException(message);
+
+    public void MoveRelativeZoom(string camera, int deltaPercent) =>
         throw new NotSupportedException(message);
 
     public void MoveRelativePanTilt(string camera, int? x = null, int? y = null) =>
