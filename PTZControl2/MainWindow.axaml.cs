@@ -24,6 +24,7 @@ public sealed partial class MainWindow : Window
     private const string InvertTiltValueNameFormat = "PTZControl2InvertTilt{0}";
     private const string ThemeModeValueName = "PTZControl2ThemeMode";
     private const string ShowOnlyLogitechCamerasValueName = "PTZControl2ShowOnlyLogitechCameras";
+    private const string PreviewTopMostValueName = "PTZControl2PreviewTopMost";
     private const string LogitechControlValueName = "LogitechMotionControl";
     private const string MotorIntervalTimerValueName = "MotorIntervalTimer";
     private const string NoResetValueName = "NoReset";
@@ -50,10 +51,13 @@ public sealed partial class MainWindow : Window
     private Button _tiltDownButton = null!;
     private Button _zoomInButton = null!;
     private Button _zoomOutButton = null!;
+    private Button _previewButton = null!;
+    private DirectShowPreviewSession? _previewSession;
     private bool _invertPan;
     private bool _invertTilt;
     private bool _logitechControl;
     private bool _showOnlyLogitechCameras;
+    private bool _previewTopMost;
     private bool _noReset;
     private bool _startupActionsApplied;
     private int _motorTime = 70;
@@ -121,6 +125,9 @@ public sealed partial class MainWindow : Window
             ?? throw new InvalidOperationException("ZoomInButton control not found.");
         _zoomOutButton = this.FindControl<Button>("ZoomOutButton")
             ?? throw new InvalidOperationException("ZoomOutButton control not found.");
+        _previewButton = this.FindControl<Button>("PreviewButton")
+            ?? throw new InvalidOperationException("PreviewButton control not found.");
+        _previewButton.IsVisible = OperatingSystem.IsWindows();
         for (var preset = 1; preset <= 8; preset++)
         {
             _presetButtons.Add(this.FindControl<Button>($"Preset{preset}Button")
@@ -139,6 +146,8 @@ public sealed partial class MainWindow : Window
         };
 
         LoadSettings();
+        Closed += (_, _) => ClosePreviewSession();
+        Activated += async (_, _) => await RefreshPreviewSessionStateAfterActivation();
     }
 
     private void RefreshButton_Click(object? sender, RoutedEventArgs e)
@@ -166,6 +175,41 @@ public sealed partial class MainWindow : Window
         var info = BuildCameraInfoText();
         var dialog = new CameraInfoDialog { Info = info };
         await dialog.ShowDialog(this);
+    }
+
+    private void PreviewButton_Click(object? sender, RoutedEventArgs e)
+    {
+        CancelMemoryModeForOtherAction();
+        if (!OperatingSystem.IsWindows())
+        {
+            _statusText.Text = "Live preview is only available on Windows.";
+            return;
+        }
+
+        if (!TryGetSelectedCamera(out var camera))
+            return;
+
+        try
+        {
+            if (_previewSession is not null && !_previewSession.IsAlive)
+                ClosePreviewSession();
+
+            if (_previewSession is not null)
+            {
+                ClosePreviewSession();
+                _statusText.Text = "Live preview closed.";
+                return;
+            }
+
+            _previewSession = DirectShowPreviewSession.Start(GetCameraKey(camera), $"PTZControl2 Preview - {camera.Name}", _previewTopMost);
+            _previewButton.Content = "Close Preview";
+            _statusText.Text = $"Live preview opened: {camera.Name}";
+        }
+        catch (Exception ex)
+        {
+            ClosePreviewSession();
+            SetError("Open live preview failed", ex);
+        }
     }
 
     private async void HelpButton_Click(object? sender, RoutedEventArgs e)
@@ -281,6 +325,7 @@ public sealed partial class MainWindow : Window
             ThemeMode = _themeMode,
             ShowCameraFilterOptions = OperatingSystem.IsWindows(),
             ShowOnlyLogitechCameras = _showOnlyLogitechCameras,
+            PreviewTopMost = _previewTopMost,
             PresetNames = presetNames
         };
 
@@ -296,6 +341,8 @@ public sealed partial class MainWindow : Window
             _motorTime = dialog.MotorTime;
             _themeMode = dialog.ThemeMode;
             _showOnlyLogitechCameras = OperatingSystem.IsWindows() && dialog.ShowOnlyLogitechCameras;
+            _previewTopMost = OperatingSystem.IsWindows() && dialog.PreviewTopMost;
+            _previewSession?.SetTopMost(_previewTopMost);
             SaveSettings(slotIndex, dialog.PresetNames);
             ApplyTheme();
             RefreshCameras();
@@ -631,6 +678,7 @@ public sealed partial class MainWindow : Window
         using var optionsKey = Registry.CurrentUser.OpenSubKey(OptionsRegistryPath);
         _noReset = _startupOptions.NoReset ?? Convert.ToInt32(optionsKey?.GetValue(NoResetValueName, 0)) != 0;
         _showOnlyLogitechCameras = Convert.ToInt32(optionsKey?.GetValue(ShowOnlyLogitechCamerasValueName, 0)) != 0;
+        _previewTopMost = Convert.ToInt32(optionsKey?.GetValue(PreviewTopMostValueName, 0)) != 0;
         ApplyTheme();
     }
 
@@ -685,6 +733,7 @@ public sealed partial class MainWindow : Window
 
         using var optionsKey = Registry.CurrentUser.CreateSubKey(OptionsRegistryPath);
         optionsKey?.SetValue(ShowOnlyLogitechCamerasValueName, _showOnlyLogitechCameras ? 1 : 0, RegistryValueKind.DWord);
+        optionsKey?.SetValue(PreviewTopMostValueName, _previewTopMost ? 1 : 0, RegistryValueKind.DWord);
     }
 
     private void ApplyTheme()
@@ -741,6 +790,40 @@ public sealed partial class MainWindow : Window
     private void SetError(string context, Exception ex)
     {
         _statusText.Text = $"{context}: {ex.Message}";
+    }
+
+    private void ClosePreviewSession()
+    {
+        _previewSession?.Dispose();
+        _previewSession = null;
+        if (_previewButton is not null)
+            _previewButton.Content = "Preview";
+    }
+
+    private void RefreshPreviewSessionState(bool bringToFront)
+    {
+        if (_previewSession is null)
+            return;
+
+        if (!_previewSession.IsAlive)
+        {
+            ClosePreviewSession();
+            _statusText.Text = "Live preview closed.";
+            return;
+        }
+
+        if (bringToFront)
+            _previewSession.BringToFront();
+    }
+
+    private async Task RefreshPreviewSessionStateAfterActivation()
+    {
+        await Task.Delay(250);
+
+        if (!IsActive)
+            return;
+
+        RefreshPreviewSessionState(bringToFront: true);
     }
 
     private IBrush GetBrushResource(string key)

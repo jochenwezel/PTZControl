@@ -110,6 +110,11 @@
                     Content="Show only Logitech USB cameras" />
           <TextBlock Classes="hint"
                      Text="This Windows-only filter uses the USB vendor ID in the device path. Slot numbers stay unchanged." />
+          <TextBlock Text="Live preview" Classes="sectionTitle" Margin="0,12,0,0" />
+          <CheckBox x:Name="PreviewTopMostCheckBox"
+                    Content="Keep live preview on top" />
+          <TextBlock Classes="hint"
+                     Text="When disabled, PTZControl2 still brings an open preview window forward when the main window is activated." />
         </StackPanel>
       </TabItem>
     </TabControl>

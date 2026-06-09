@@ -73,7 +73,7 @@
 
   <Grid Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="12">
     <Border Classes="panel" Padding="14">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
         <TextBlock Text="Camera"
                    VerticalAlignment="Center"
                    FontWeight="SemiBold"
@@ -83,11 +83,16 @@
                   MinWidth="320"
                   VerticalAlignment="Center"
                   SelectionChanged="CameraSelector_SelectionChanged" />
-        <Button Grid.Column="2"
+        <Button x:Name="PreviewButton"
+                Grid.Column="2"
+                Content="Preview"
+                Padding="16,8"
+                Click="PreviewButton_Click" />
+        <Button Grid.Column="3"
                 Content="Info"
                 Padding="16,8"
                 Click="ShowCameraInfoButton_Click" />
-        <Button Grid.Column="3"
+        <Button Grid.Column="4"
                 Content="Refresh"
                 Padding="16,8"
                 Click="RefreshButton_Click" />

@@ -13,6 +13,7 @@ public sealed partial class SettingsDialog : Window
     private CheckBox _invertTiltCheckBox = null!;
     private CheckBox _logitechControlCheckBox = null!;
     private CheckBox _showOnlyLogitechCamerasCheckBox = null!;
+    private CheckBox _previewTopMostCheckBox = null!;
     private TabItem _cameraFilterTab = null!;
     private TextBlock _cameraLabelTextBlock = null!;
     private TextBox _motorTimeTextBox = null!;
@@ -53,6 +54,12 @@ public sealed partial class SettingsDialog : Window
     {
         get => _showOnlyLogitechCamerasCheckBox.IsChecked == true;
         set => _showOnlyLogitechCamerasCheckBox.IsChecked = value;
+    }
+
+    public bool PreviewTopMost
+    {
+        get => _previewTopMostCheckBox.IsChecked == true;
+        set => _previewTopMostCheckBox.IsChecked = value;
     }
 
     public int MotorTime
@@ -100,6 +107,8 @@ public sealed partial class SettingsDialog : Window
             ?? throw new InvalidOperationException("LogitechControlCheckBox control not found.");
         _showOnlyLogitechCamerasCheckBox = this.FindControl<CheckBox>("ShowOnlyLogitechCamerasCheckBox")
             ?? throw new InvalidOperationException("ShowOnlyLogitechCamerasCheckBox control not found.");
+        _previewTopMostCheckBox = this.FindControl<CheckBox>("PreviewTopMostCheckBox")
+            ?? throw new InvalidOperationException("PreviewTopMostCheckBox control not found.");
         _cameraFilterTab = this.FindControl<TabItem>("CameraFilterTab")
             ?? throw new InvalidOperationException("CameraFilterTab control not found.");
         _motorTimeTextBox = this.FindControl<TextBox>("MotorTimeTextBox")
