@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PTZControl2": {
+      "commandName": "Project",
+      "commandLineArgs": "-slot:2"
+    }
+  }
+}

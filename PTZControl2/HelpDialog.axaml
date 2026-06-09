@@ -1,0 +1,82 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PTZControl2.HelpDialog"
+        Title="PTZControl2 Help"
+        Width="680"
+        Height="560"
+        MinWidth="620"
+        MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        KeyDown="Window_KeyDown">
+  <Window.Styles>
+    <Style Selector="TextBlock.sectionTitle">
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="TextBlock.command">
+      <Setter Property="FontFamily" Value="Consolas, Cascadia Mono, monospace" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.hint">
+      <Setter Property="Foreground" Value="#607080" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Button.dialogAction">
+      <Setter Property="MinWidth" Value="92" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+  </Window.Styles>
+
+  <Grid Margin="20" RowDefinitions="*,Auto" RowSpacing="16">
+    <TabControl>
+      <TabItem Header="Startup arguments">
+        <ScrollViewer Margin="4,16">
+          <StackPanel Spacing="14">
+            <StackPanel>
+              <TextBlock Text="PTZControl2 GUI startup" Classes="sectionTitle" />
+              <TextBlock Text="PTZControl2.exe" Classes="command" />
+              <TextBlock Text="Starts the graphical PTZControl2 application and selects the first detected camera." Classes="hint" />
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Text="Currently supported PTZControl2 arguments" Classes="sectionTitle" />
+              <TextBlock Text="PTZControl2.exe -device:&quot;NamePart&quot;" Classes="command" />
+              <TextBlock Text="Selects a camera by a device-name fragment at startup." Classes="hint" />
+              <TextBlock Text="PTZControl2.exe -slot:1..N" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Selects a camera by its current list position at startup. If the slot is unavailable, PTZControl2 falls back to the first camera and shows a warning." Classes="hint" />
+              <TextBlock Text="PTZControl2.exe -noreset" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Accepted for compatibility with the original GUI. PTZControl2 currently performs no startup reset." Classes="hint" />
+              <TextBlock Text="PTZControl2.exe -noguard" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Accepted for compatibility with the original GUI. PTZControl2 currently has no guard thread." Classes="hint" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Links">
+        <StackPanel Margin="4,16" Spacing="12">
+          <TextBlock Text="Project links" Classes="sectionTitle" />
+          <TextBlock Text="Open the project page or the release/download page in your browser." Classes="hint" />
+          <Button Content="Project website"
+                  Width="190"
+                  HorizontalContentAlignment="Center"
+                  Click="ProjectButton_Click" />
+          <Button Content="Releases / Downloads"
+                  Width="190"
+                  HorizontalContentAlignment="Center"
+                  Click="ReleasesButton_Click" />
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+
+    <StackPanel Grid.Row="1"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right">
+      <Button Classes="dialogAction"
+              Content="Close"
+              Click="CloseButton_Click" />
+    </StackPanel>
+  </Grid>
+</Window>

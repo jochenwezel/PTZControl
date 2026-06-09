@@ -1,0 +1,119 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PTZControl2.SettingsDialog"
+        Title="PTZControl2 Settings"
+        Width="560"
+        Height="520"
+        MinWidth="520"
+        MinHeight="380"
+        WindowStartupLocation="CenterOwner"
+        KeyDown="Window_KeyDown">
+  <Window.Styles>
+    <Style Selector="TextBlock.sectionTitle">
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.hint">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="#607080" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Button.dialogAction">
+      <Setter Property="MinWidth" Value="92" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+  </Window.Styles>
+
+  <Grid Margin="20" RowDefinitions="*,Auto" RowSpacing="16">
+    <TabControl>
+      <TabItem Header="Movement">
+        <StackPanel Margin="4,16" Spacing="12">
+          <TextBlock Text="Camera movement" Classes="sectionTitle" />
+          <TextBlock x:Name="CameraLabelTextBlock"
+                     Classes="hint" />
+          <CheckBox x:Name="InvertPanCheckBox"
+                    Content="Invert pan actions" />
+          <CheckBox x:Name="InvertTiltCheckBox"
+                    Content="Invert tilt actions" />
+          <TextBlock Classes="hint"
+                     Text="Use these options when the camera is mounted upside down or the desired operator direction differs from the device direction." />
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Presets">
+        <ScrollViewer Margin="4,16">
+          <StackPanel Spacing="10">
+            <TextBlock Text="Preset names" Classes="sectionTitle" />
+            <TextBlock Classes="hint"
+                       Text="These names are stored in the same registry values as the original PTZControl tooltip texts for the selected camera slot." />
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+              <TextBlock Text="Preset 1" VerticalAlignment="Center" />
+              <TextBox x:Name="PresetName1TextBox" Grid.Column="1" />
+              <TextBlock Grid.Row="1" Text="Preset 2" VerticalAlignment="Center" />
+              <TextBox x:Name="PresetName2TextBox" Grid.Row="1" Grid.Column="1" />
+              <TextBlock Grid.Row="2" Text="Preset 3" VerticalAlignment="Center" />
+              <TextBox x:Name="PresetName3TextBox" Grid.Row="2" Grid.Column="1" />
+              <TextBlock Grid.Row="3" Text="Preset 4" VerticalAlignment="Center" />
+              <TextBox x:Name="PresetName4TextBox" Grid.Row="3" Grid.Column="1" />
+              <TextBlock Grid.Row="4" Text="Preset 5" VerticalAlignment="Center" />
+              <TextBox x:Name="PresetName5TextBox" Grid.Row="4" Grid.Column="1" />
+              <TextBlock Grid.Row="5" Text="Preset 6" VerticalAlignment="Center" />
+              <TextBox x:Name="PresetName6TextBox" Grid.Row="5" Grid.Column="1" />
+              <TextBlock Grid.Row="6" Text="Preset 7" VerticalAlignment="Center" />
+              <TextBox x:Name="PresetName7TextBox" Grid.Row="6" Grid.Column="1" />
+              <TextBlock Grid.Row="7" Text="Preset 8" VerticalAlignment="Center" />
+              <TextBox x:Name="PresetName8TextBox" Grid.Row="7" Grid.Column="1" />
+            </Grid>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Original">
+        <StackPanel Margin="4,16" Spacing="14">
+          <TextBlock Text="Original PTZControl options" Classes="sectionTitle" />
+          <CheckBox x:Name="LogitechControlCheckBox"
+                    Content="Use Logitech peripheral control extension" />
+          <Grid ColumnDefinitions="Auto,120,Auto" ColumnSpacing="10">
+            <TextBlock Text="Motor time"
+                       VerticalAlignment="Center" />
+            <TextBox x:Name="MotorTimeTextBox"
+                     Grid.Column="1"
+                     HorizontalContentAlignment="Center" />
+            <TextBlock Grid.Column="2"
+                       Text="msec"
+                       VerticalAlignment="Center" />
+          </Grid>
+          <TextBlock Classes="hint"
+                     Text="These values are compatible with the original PTZControl settings." />
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Appearance">
+        <StackPanel Margin="4,16" Spacing="12">
+          <TextBlock Text="Appearance" Classes="sectionTitle" />
+          <ComboBox x:Name="ThemeModeComboBox"
+                    Width="180"
+                    HorizontalAlignment="Left">
+            <ComboBoxItem Content="System" />
+            <ComboBoxItem Content="Light" />
+            <ComboBoxItem Content="Dark" />
+          </ComboBox>
+          <TextBlock Classes="hint"
+                     Text="System follows the operating system theme. Light and Dark override it for PTZControl2." />
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+
+    <StackPanel Grid.Row="1"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="8">
+      <Button Classes="dialogAction"
+              Content="Cancel"
+              Click="CancelButton_Click" />
+      <Button Classes="dialogAction"
+              Content="Save"
+              Click="SaveButton_Click" />
+    </StackPanel>
+  </Grid>
+</Window>
