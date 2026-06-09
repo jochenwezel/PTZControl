@@ -28,6 +28,9 @@ jobs:
     - name: Publish PTZControlConsole (x64)
       run: dotnet publish PTZControlConsole/PTZControlConsole.csproj -c Release -r win-x64 --self-contained false -o ${{ github.workspace }}\console-win-x64
 
+    - name: Publish PTZControl2 (x64)
+      run: dotnet publish PTZControl2/PTZControl2.csproj -c Release -r win-x64 --self-contained false -o ${{ github.workspace }}\ptzcontrol2-win-x64
+
     - name: Upload PTZControl (x64) as artifact
       uses: actions/upload-artifact@v4
       with:
@@ -39,6 +42,12 @@ jobs:
       with:
         name: PTZControlConsole-win-x64
         path: ${{ github.workspace }}\console-win-x64\*
+
+    - name: Upload PTZControl2 (x64) as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PTZControl2-win-x64
+        path: ${{ github.workspace }}\ptzcontrol2-win-x64\*
 
   build-x86:
     runs-on: windows-2025-vs2026
@@ -59,6 +68,9 @@ jobs:
     - name: Publish PTZControlConsole (x86)
       run: dotnet publish PTZControlConsole/PTZControlConsole.csproj -c Release -r win-x86 --self-contained false -o ${{ github.workspace }}\console-win-x86
 
+    - name: Publish PTZControl2 (x86)
+      run: dotnet publish PTZControl2/PTZControl2.csproj -c Release -r win-x86 --self-contained false -o ${{ github.workspace }}\ptzcontrol2-win-x86
+
     - name: Upload PTZControl (x86) as artifact
       uses: actions/upload-artifact@v4
       with:
@@ -70,6 +82,12 @@ jobs:
       with:
         name: PTZControlConsole-win-x86
         path: ${{ github.workspace }}\console-win-x86\*
+
+    - name: Upload PTZControl2 (x86) as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PTZControl2-win-x86
+        path: ${{ github.workspace }}\ptzcontrol2-win-x86\*
 
   build-linux-x64:
     runs-on: ubuntu-latest
@@ -126,11 +144,23 @@ jobs:
           name: PTZControlConsole-win-x64
           path: PTZControlConsole-${{ env.TAG_NAME }}-win-x64
 
+      - name: Download PTZControl2 x64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PTZControl2-win-x64
+          path: PTZControl2-${{ env.TAG_NAME }}-win-x64
+
       - name: Download console x86 artifact
         uses: actions/download-artifact@v4
         with:
           name: PTZControlConsole-win-x86
           path: PTZControlConsole-${{ env.TAG_NAME }}-win-x86
+
+      - name: Download PTZControl2 x86 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PTZControl2-win-x86
+          path: PTZControl2-${{ env.TAG_NAME }}-win-x86
 
       - name: Download console linux x64 beta artifact
         uses: actions/download-artifact@v4
@@ -155,6 +185,8 @@ jobs:
           (cd PTZControl-win-x86 && zip -r ../PTZControl-win-x86.zip .)
           (cd PTZControlConsole-${{ env.TAG_NAME }}-win-x64 && zip -r ../PTZControlConsole-win-x64.zip .)
           (cd PTZControlConsole-${{ env.TAG_NAME }}-win-x86 && zip -r ../PTZControlConsole-win-x86.zip .)
+          (cd PTZControl2-${{ env.TAG_NAME }}-win-x64 && zip -r ../PTZControl2-win-x64.zip .)
+          (cd PTZControl2-${{ env.TAG_NAME }}-win-x86 && zip -r ../PTZControl2-win-x86.zip .)
           tar -czf PTZControlConsole-linux-x64-beta.tar.gz PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta
   
       - name: Create Release
@@ -167,5 +199,7 @@ jobs:
             ./PTZControl-win-x86.zip
             ./PTZControlConsole-win-x64.zip
             ./PTZControlConsole-win-x86.zip
+            ./PTZControl2-win-x64.zip
+            ./PTZControl2-win-x86.zip
             ./PTZControlConsole-linux-x64-beta.tar.gz
       

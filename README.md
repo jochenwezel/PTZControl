@@ -16,9 +16,26 @@ verbs for camera discovery, camera selection, zoom, pan/tilt, presets, metadata,
 and diagnostics so PTZ camera actions can be integrated into existing production
 workflows.
 
+## Purpose of the PTZControl2 GUI
+
+`PTZControl2` is the fork's modern Windows GUI for interactive camera operation.
+It offers a larger, clearer, dark-mode capable control surface than the classic
+GUI while keeping the familiar preset and camera-slot workflow.
+
+![PTZControl2 dark-mode main window](docs/assets/ptzcontrol2-main-window.png)
+
+Highlights include large live-operation buttons, per-camera settings, preset
+names, camera aliases, optional live preview, camera diagnostics, picture
+controls, and Windows device display-name rename support with UAC elevation when
+required. See [PTZControl2 GUI](docs/ptzcontrol2.md) for details.
+
+PTZControl2 is currently promoted as a Windows application. Linux/macOS GUI
+behavior is not part of the supported release scope yet.
+
 Important additions in this fork include:
 
 - A .NET-based `PTZControlConsole` command-line application.
+- A modern Windows-only `PTZControl2` GUI application.
 - Cross-platform console support for Windows and experimental Linux builds, with
   macOS support planned for the same backend architecture.
 - Modern CLI verbs for device discovery, camera information, zoom, pan/tilt,
@@ -30,8 +47,8 @@ Important additions in this fork include:
   registry storage, while Linux/macOS use JSON metadata files.
 - Config export/import commands for moving preset names and camera slot aliases
   between systems.
-- GitHub Actions release packaging for the Windows GUI, Windows console builds,
-  and experimental Linux console builds.
+- GitHub Actions release packaging for the classic Windows GUI, PTZControl2
+  Windows GUI, Windows console builds, and experimental Linux console builds.
 - Guided Windows/Linux camera test scripts to collect reproducible feedback from
   real PTZ Pro 2 camera tests.
 
@@ -51,6 +68,7 @@ packaging, and cross-platform metadata work. See [LICENSE](LICENSE) and
 - [Command syntax](docs/syntax.md)
 - [Generated CLI help](docs/generated/cli-help.md)
 - [Generated example output](docs/generated/example-output.md)
+- [PTZControl2 GUI](docs/ptzcontrol2.md)
 - [Stream Deck guide](docs/streamdeck.md)
 - [Bitfocus Companion guide](docs/bitfocus-companion.md)
 - [Linux installation](install-linux.md)
