@@ -19,11 +19,14 @@ public sealed partial class MainWindow : Window
 {
     private const string SettingsRegistryPath = @"SOFTWARE\MRi-Software\PTZControl\Window";
     private const string DeviceRegistryPath = @"SOFTWARE\MRi-Software\PTZControl\Device";
+    private const string OptionsRegistryPath = @"SOFTWARE\MRi-Software\PTZControl\Options";
     private const string InvertPanValueNameFormat = "PTZControl2InvertPan{0}";
     private const string InvertTiltValueNameFormat = "PTZControl2InvertTilt{0}";
     private const string ThemeModeValueName = "PTZControl2ThemeMode";
     private const string LogitechControlValueName = "LogitechMotionControl";
     private const string MotorIntervalTimerValueName = "MotorIntervalTimer";
+    private const string NoResetValueName = "NoReset";
+    private const string NoGuardValueName = "NoGuard";
 
     private readonly ICameraBackend _backend = CameraBackendFactory.Create();
     private readonly Dictionary<string, CameraInfo> _cameraByLabel = new(StringComparer.OrdinalIgnoreCase);
@@ -38,6 +41,9 @@ public sealed partial class MainWindow : Window
     private bool _invertPan;
     private bool _invertTilt;
     private bool _logitechControl;
+    private bool _noReset;
+    private bool _noGuard;
+    private bool _startupActionsApplied;
     private int _motorTime = 70;
     private string _themeMode = "System";
     private bool _memoryMode;
@@ -124,6 +130,11 @@ public sealed partial class MainWindow : Window
         if (sender is not Button { Tag: not null } button || !int.TryParse(button.Tag.ToString(), out var preset))
             return;
 
+        RunPresetAction(preset);
+    }
+
+    private void RunPresetAction(int preset)
+    {
         if (_memoryMode)
         {
             SetMemoryMode(false);
@@ -212,7 +223,11 @@ public sealed partial class MainWindow : Window
 
             _cameraSelector.ItemsSource = labels;
             _cameraSelector.SelectedIndex = SelectStartupCamera(cameras);
-            _statusText.Text = BuildStartupStatus(labels.Count);
+            var startupStatus = BuildStartupStatus(labels.Count);
+            var resetStatus = ApplyStartupCameraReset(cameras);
+            _statusText.Text = string.IsNullOrWhiteSpace(resetStatus)
+                ? startupStatus
+                : $"{startupStatus} {resetStatus}";
             UpdatePresetLabels();
         }
         catch (Exception ex)
@@ -355,7 +370,11 @@ public sealed partial class MainWindow : Window
     private void LoadSettings()
     {
         if (!OperatingSystem.IsWindows())
+        {
+            _noReset = _startupOptions.NoReset ?? false;
+            _noGuard = _startupOptions.NoGuard ?? false;
             return;
+        }
 
         LoadSettingsFromRegistry();
     }
@@ -369,6 +388,10 @@ public sealed partial class MainWindow : Window
         using var deviceKey = Registry.CurrentUser.OpenSubKey(DeviceRegistryPath);
         _logitechControl = Convert.ToInt32(deviceKey?.GetValue(LogitechControlValueName, 0)) != 0;
         _motorTime = Convert.ToInt32(deviceKey?.GetValue(MotorIntervalTimerValueName, 70));
+
+        using var optionsKey = Registry.CurrentUser.OpenSubKey(OptionsRegistryPath);
+        _noReset = _startupOptions.NoReset ?? Convert.ToInt32(optionsKey?.GetValue(NoResetValueName, 0)) != 0;
+        _noGuard = _startupOptions.NoGuard ?? Convert.ToInt32(optionsKey?.GetValue(NoGuardValueName, 0)) != 0;
         ApplyTheme();
     }
 
@@ -436,7 +459,14 @@ public sealed partial class MainWindow : Window
         {
             e.Handled = true;
             SetMemoryMode(false);
+            return;
         }
+
+        if (e.Source is TextBox)
+            return;
+
+        if (TryHandleCameraHotkey(e) || TryHandleActionHotkey(e))
+            e.Handled = true;
     }
 
     private void CancelMemoryModeForOtherAction()
@@ -501,10 +531,132 @@ public sealed partial class MainWindow : Window
             status += $" Startup slot: {_startupOptions.Slot}.";
         if (!string.IsNullOrWhiteSpace(_startupOptions.DeviceNamePart))
             status += $" Startup device filter: {_startupOptions.DeviceNamePart}.";
-        if (_startupOptions.NoReset)
-            status += " -noreset accepted.";
-        if (_startupOptions.NoGuard)
-            status += " -noguard accepted.";
+        if (_noReset)
+            status += " NoReset is active.";
+        if (_noGuard)
+            status += " NoGuard is active.";
         return status;
+    }
+
+    private string ApplyStartupCameraReset(IReadOnlyList<CameraInfo> cameras)
+    {
+        if (_startupActionsApplied || cameras.Count == 0)
+            return string.Empty;
+
+        _startupActionsApplied = true;
+        if (_noReset)
+            return "Startup home reset skipped.";
+
+        var failures = new List<string>();
+        for (var index = cameras.Count - 1; index >= 0; index--)
+        {
+            try
+            {
+                _backend.RestoreHome(GetCameraKey(cameras[index]), zoom: false, move: true);
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{cameras[index].Name}: {ex.Message}");
+            }
+        }
+
+        return failures.Count == 0
+            ? "Startup home reset completed."
+            : $"Startup home reset partially failed: {string.Join("; ", failures)}";
+    }
+
+    private bool TryHandleCameraHotkey(KeyEventArgs e)
+    {
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+            return false;
+
+        var slot = e.Key switch
+        {
+            Key.D1 or Key.NumPad1 or Key.PageUp => 1,
+            Key.D2 or Key.NumPad2 or Key.PageDown => 2,
+            Key.D3 or Key.NumPad3 => 3,
+            _ => 0
+        };
+
+        if (slot == 0)
+            return false;
+
+        SelectCameraSlot(slot);
+        return true;
+    }
+
+    private bool TryHandleActionHotkey(KeyEventArgs e)
+    {
+        if (e.KeyModifiers != KeyModifiers.None)
+            return false;
+
+        switch (e.Key)
+        {
+            case Key.Home:
+            case Key.Enter:
+            case Key.NumPad0:
+                HomeButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.Left:
+                PanLeftButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.Right:
+                PanRightButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.Up:
+                TiltUpButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.Down:
+                TiltDownButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.M:
+                MemoryButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.Add:
+            case Key.OemPlus:
+            case Key.PageUp:
+                ZoomInButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.Subtract:
+            case Key.OemMinus:
+            case Key.PageDown:
+                ZoomOutButton_Click(this, new RoutedEventArgs());
+                return true;
+            case Key.Divide:
+            case Key.Multiply:
+                SettingsButton_Click(this, new RoutedEventArgs());
+                return true;
+        }
+
+        var preset = e.Key switch
+        {
+            Key.D1 or Key.NumPad1 => 1,
+            Key.D2 or Key.NumPad2 => 2,
+            Key.D3 or Key.NumPad3 => 3,
+            Key.D4 or Key.NumPad4 => 4,
+            Key.D5 or Key.NumPad5 => 5,
+            Key.D6 or Key.NumPad6 => 6,
+            Key.D7 or Key.NumPad7 => 7,
+            Key.D8 or Key.NumPad8 => 8,
+            _ => 0
+        };
+
+        if (preset == 0)
+            return false;
+
+        RunPresetAction(preset);
+        return true;
+    }
+
+    private void SelectCameraSlot(int slot)
+    {
+        if (slot >= 1 && slot <= _cameraByLabel.Count)
+        {
+            _cameraSelector.SelectedIndex = slot - 1;
+            _statusText.Text = $"Selected camera slot {slot}.";
+            return;
+        }
+
+        _statusText.Text = $"Camera slot {slot} is not available.";
     }
 }

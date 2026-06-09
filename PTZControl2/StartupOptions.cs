@@ -6,8 +6,8 @@ public sealed class StartupOptions
 {
     public string? DeviceNamePart { get; init; }
     public int? Slot { get; init; }
-    public bool NoReset { get; init; }
-    public bool NoGuard { get; init; }
+    public bool? NoReset { get; init; }
+    public bool? NoGuard { get; init; }
 
     public static StartupOptions Parse(string[] args)
     {
@@ -51,8 +51,8 @@ public sealed class StartupOptions
     {
         public string? DeviceNamePart { get; set; }
         public int? Slot { get; set; }
-        public bool NoReset { get; set; }
-        public bool NoGuard { get; set; }
+        public bool? NoReset { get; set; }
+        public bool? NoGuard { get; set; }
 
         public StartupOptions Build() => new()
         {

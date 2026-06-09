@@ -47,9 +47,9 @@
               <TextBlock Text="PTZControl2.exe -slot:1..N" Classes="command" Margin="0,8,0,0" />
               <TextBlock Text="Selects a camera by its current list position at startup. If the slot is unavailable, PTZControl2 falls back to the first camera and shows a warning." Classes="hint" />
               <TextBlock Text="PTZControl2.exe -noreset" Classes="command" Margin="0,8,0,0" />
-              <TextBlock Text="Accepted for compatibility with the original GUI. PTZControl2 currently performs no startup reset." Classes="hint" />
+              <TextBlock Text="Skips the startup home reset. Without this option, PTZControl2 restores all detected cameras to Home at startup." Classes="hint" />
               <TextBlock Text="PTZControl2.exe -noguard" Classes="command" Margin="0,8,0,0" />
-              <TextBlock Text="Accepted for compatibility with the original GUI. PTZControl2 currently has no guard thread." Classes="hint" />
+              <TextBlock Text="Accepted for compatibility with the original GUI and registry option. The original guard-thread behavior is Windows/MFC-specific and is not required by the current PTZControl2 backend." Classes="hint" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>
