@@ -8,7 +8,8 @@
         MinHeight="580"
         Background="#F4F6F8"
         WindowStartupLocation="CenterScreen"
-        KeyDown="Window_KeyDown">
+        KeyDown="Window_KeyDown"
+        KeyUp="Window_KeyUp">
   <Window.Styles>
     <Style Selector="Border.panel">
       <Setter Property="Background" Value="#FFFFFF" />
@@ -255,7 +256,7 @@
             BorderThickness="1"
             CornerRadius="8"
             Padding="12,9">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
         <TextBlock x:Name="StatusText"
                    Text="Ready."
                    Foreground="#263442"
@@ -266,6 +267,11 @@
                 Padding="14,4"
                 VerticalAlignment="Center"
                 Click="HelpButton_Click" />
+        <Button Grid.Column="2"
+                Content="About"
+                Padding="14,4"
+                VerticalAlignment="Center"
+                Click="AboutButton_Click" />
       </Grid>
     </Border>
   </Grid>

@@ -48,27 +48,125 @@
               <TextBlock Text="Selects a camera by its current list position at startup. If the slot is unavailable, PTZControl2 falls back to the first camera and shows a warning." Classes="hint" />
               <TextBlock Text="PTZControl2.exe -noreset" Classes="command" Margin="0,8,0,0" />
               <TextBlock Text="Skips the startup home reset. Without this option, PTZControl2 restores all detected cameras to Home at startup." Classes="hint" />
-              <TextBlock Text="PTZControl2.exe -noguard" Classes="command" Margin="0,8,0,0" />
-              <TextBlock Text="Accepted for compatibility with the original GUI and registry option. The original guard-thread behavior is Windows/MFC-specific and is not required by the current PTZControl2 backend." Classes="hint" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>
       </TabItem>
 
-      <TabItem Header="Links">
-        <StackPanel Margin="4,16" Spacing="12">
-          <TextBlock Text="Project links" Classes="sectionTitle" />
-          <TextBlock Text="Open the project page or the release/download page in your browser." Classes="hint" />
-          <Button Content="Project website"
-                  Width="190"
-                  HorizontalContentAlignment="Center"
-                  Click="ProjectButton_Click" />
-          <Button Content="Releases / Downloads"
-                  Width="190"
-                  HorizontalContentAlignment="Center"
-                  Click="ReleasesButton_Click" />
-        </StackPanel>
+      <TabItem Header="Hotkeys">
+        <ScrollViewer Margin="4,16">
+          <StackPanel Spacing="14">
+            <StackPanel>
+              <TextBlock Text="Camera movement" Classes="sectionTitle" />
+              <TextBlock Text="Arrow Left / Arrow Right" Classes="command" />
+              <TextBlock Text="Pan left or right by the selected step size." Classes="hint" />
+              <TextBlock Text="Arrow Up / Arrow Down" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Tilt up or down by the selected step size." Classes="hint" />
+              <TextBlock Text="+ / Page Up" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Zoom in by the selected step size." Classes="hint" />
+              <TextBlock Text="- / Page Down" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Zoom out by the selected step size." Classes="hint" />
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Text="Presets and modes" Classes="sectionTitle" />
+              <TextBlock Text="1..8 / NumPad 1..8" Classes="command" />
+              <TextBlock Text="Restore the matching preset. In memory mode, save the current position to that preset." Classes="hint" />
+              <TextBlock Text="Home / Enter / NumPad 0" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Restore the selected camera's home position." Classes="hint" />
+              <TextBlock Text="M" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Toggle memory mode. Press Esc to cancel memory mode." Classes="hint" />
+              <TextBlock Text="/ / *" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Open settings." Classes="hint" />
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Text="Camera selection" Classes="sectionTitle" />
+              <TextBlock Text="Alt+1 / Alt+2 / Alt+3" Classes="command" />
+              <TextBlock Text="Select camera slot 1, 2, or 3 if available." Classes="hint" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
       </TabItem>
+
+      <TabItem Header="Live control">
+        <ScrollViewer Margin="4,16">
+          <StackPanel Spacing="14">
+            <StackPanel>
+              <TextBlock Text="Step controls" Classes="sectionTitle" />
+              <TextBlock Text="Single click or key press" Classes="command" />
+              <TextBlock Text="Executes one controlled movement or zoom action using the selected step size." Classes="hint" />
+              <TextBlock Text="Holding a hotkey" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Does not queue repeated movement actions. PTZControl2 waits until the key is released before the same key can trigger another action." Classes="hint" />
+              <TextBlock Text="Holding a live-control button" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Currently behaves like a single click. Continuous press-and-release movement like the original GUI is planned separately once the backend can model start/stop movement safely." Classes="hint" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Presets">
+        <ScrollViewer Margin="4,16">
+          <StackPanel Spacing="14">
+            <StackPanel>
+              <TextBlock Text="Restore presets" Classes="sectionTitle" />
+              <TextBlock Text="Preset buttons 1..8 restore saved camera positions for the selected camera." Classes="hint" />
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Text="Memory mode" Classes="sectionTitle" />
+              <TextBlock Text="Click Memory, then click preset 1..8 to save the current camera position." Classes="hint" />
+              <TextBlock Text="Click Memory again or press Esc to cancel memory mode." Classes="hint" Margin="0,8,0,0" />
+              <TextBlock Text="Home and Default" Classes="command" Margin="0,8,0,0" />
+              <TextBlock Text="Home restores the camera home position. Default restores driver default values for zoom, pan, and tilt." Classes="hint" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Settings">
+        <ScrollViewer Margin="4,16">
+          <StackPanel Spacing="14">
+            <StackPanel>
+              <TextBlock Text="Camera-specific settings" Classes="sectionTitle" />
+              <TextBlock Text="Settings apply to the currently selected camera slot." Classes="hint" />
+              <TextBlock Text="Invert pan and invert tilt can be used when a camera is mounted upside down or operator direction should be reversed." Classes="hint" Margin="0,8,0,0" />
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Text="Preset names" Classes="sectionTitle" />
+              <TextBlock Text="Preset names are stored in the same registry values as the original PTZControl tooltip texts." Classes="hint" />
+              <TextBlock Text="After saving settings, preset button labels update immediately." Classes="hint" Margin="0,8,0,0" />
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Text="Appearance and original options" Classes="sectionTitle" />
+              <TextBlock Text="Appearance can follow the operating system theme or be forced to Light or Dark." Classes="hint" />
+              <TextBlock Text="Original PTZControl options such as Logitech peripheral control extension and motor time are available in settings where applicable." Classes="hint" Margin="0,8,0,0" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Cameras">
+        <ScrollViewer Margin="4,16">
+          <StackPanel Spacing="14">
+            <StackPanel>
+              <TextBlock Text="Camera selection" Classes="sectionTitle" />
+              <TextBlock Text="The camera list shows detected video devices. PTZControl2 uses the selected item for all live-control, preset, home, default, and settings actions." Classes="hint" />
+              <TextBlock Text="Startup argument -slot:N selects by current list position. Startup argument -device:&quot;NamePart&quot; selects by camera device-name fragment." Classes="hint" Margin="0,8,0,0" />
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Text="Supported cameras" Classes="sectionTitle" />
+              <TextBlock Text="The strongest support target is Logitech PTZ-class hardware such as PTZ Pro 2 and related cameras supported by the original PTZControl project." Classes="hint" />
+              <TextBlock Text="Simpler Logitech webcams may expose basic zoom/pan/tilt ranges but may not support Logitech home or preset extension-unit commands." Classes="hint" Margin="0,8,0,0" />
+              <TextBlock Text="Non-camera capture devices can appear in the device list, but camera control actions may fail with a statusbar error if the device does not expose PTZ controls." Classes="hint" Margin="0,8,0,0" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
     </TabControl>
 
     <StackPanel Grid.Row="1"

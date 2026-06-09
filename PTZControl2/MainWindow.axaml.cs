@@ -26,11 +26,11 @@ public sealed partial class MainWindow : Window
     private const string LogitechControlValueName = "LogitechMotionControl";
     private const string MotorIntervalTimerValueName = "MotorIntervalTimer";
     private const string NoResetValueName = "NoReset";
-    private const string NoGuardValueName = "NoGuard";
 
     private readonly ICameraBackend _backend = CameraBackendFactory.Create();
     private readonly Dictionary<string, CameraInfo> _cameraByLabel = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<TextBlock> _presetLabels = new();
+    private readonly HashSet<Key> _pressedActionKeys = new();
     private readonly StartupOptions _startupOptions;
     private Border _statusBorder = null!;
     private ComboBox _cameraSelector = null!;
@@ -42,7 +42,6 @@ public sealed partial class MainWindow : Window
     private bool _invertTilt;
     private bool _logitechControl;
     private bool _noReset;
-    private bool _noGuard;
     private bool _startupActionsApplied;
     private int _motorTime = 70;
     private string _themeMode = "System";
@@ -122,6 +121,13 @@ public sealed partial class MainWindow : Window
     {
         CancelMemoryModeForOtherAction();
         var dialog = new HelpDialog();
+        await dialog.ShowDialog(this);
+    }
+
+    private async void AboutButton_Click(object? sender, RoutedEventArgs e)
+    {
+        CancelMemoryModeForOtherAction();
+        var dialog = new AboutDialog();
         await dialog.ShowDialog(this);
     }
 
@@ -372,7 +378,6 @@ public sealed partial class MainWindow : Window
         if (!OperatingSystem.IsWindows())
         {
             _noReset = _startupOptions.NoReset ?? false;
-            _noGuard = _startupOptions.NoGuard ?? false;
             return;
         }
 
@@ -391,7 +396,6 @@ public sealed partial class MainWindow : Window
 
         using var optionsKey = Registry.CurrentUser.OpenSubKey(OptionsRegistryPath);
         _noReset = _startupOptions.NoReset ?? Convert.ToInt32(optionsKey?.GetValue(NoResetValueName, 0)) != 0;
-        _noGuard = _startupOptions.NoGuard ?? Convert.ToInt32(optionsKey?.GetValue(NoGuardValueName, 0)) != 0;
         ApplyTheme();
     }
 
@@ -465,8 +469,24 @@ public sealed partial class MainWindow : Window
         if (e.Source is TextBox)
             return;
 
-        if (TryHandleCameraHotkey(e) || TryHandleActionHotkey(e))
+        if (!TryBeginHotkey(e.Key))
+        {
             e.Handled = true;
+            return;
+        }
+
+        if (TryHandleCameraHotkey(e) || TryHandleActionHotkey(e))
+        {
+            e.Handled = true;
+            return;
+        }
+
+        EndHotkey(e.Key);
+    }
+
+    private void Window_KeyUp(object? sender, KeyEventArgs e)
+    {
+        EndHotkey(e.Key);
     }
 
     private void CancelMemoryModeForOtherAction()
@@ -527,14 +547,8 @@ public sealed partial class MainWindow : Window
         var status = $"Found {cameraCount} camera(s).";
         if (!string.IsNullOrWhiteSpace(_startupSelectionWarning))
             status += $" {_startupSelectionWarning}";
-        if (_startupOptions.Slot is not null)
-            status += $" Startup slot: {_startupOptions.Slot}.";
-        if (!string.IsNullOrWhiteSpace(_startupOptions.DeviceNamePart))
-            status += $" Startup device filter: {_startupOptions.DeviceNamePart}.";
         if (_noReset)
             status += " NoReset is active.";
-        if (_noGuard)
-            status += " NoGuard is active.";
         return status;
     }
 
@@ -547,22 +561,33 @@ public sealed partial class MainWindow : Window
         if (_noReset)
             return "Startup home reset skipped.";
 
-        var failures = new List<string>();
+        var selectedIndex = _cameraSelector.SelectedIndex;
+        if (selectedIndex < 0 || selectedIndex >= cameras.Count)
+            return string.Empty;
+
+        string? selectedCameraError = null;
         for (var index = cameras.Count - 1; index >= 0; index--)
         {
             try
             {
                 _backend.RestoreHome(GetCameraKey(cameras[index]), zoom: false, move: true);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (index == selectedIndex)
             {
-                failures.Add($"{cameras[index].Name}: {ex.Message}");
+                selectedCameraError = ex.Message;
+            }
+            catch
+            {
+                // Ignore non-selected camera startup reset failures to avoid noisy warnings.
             }
         }
 
-        return failures.Count == 0
-            ? "Startup home reset completed."
-            : $"Startup home reset partially failed: {string.Join("; ", failures)}";
+        if (!string.IsNullOrWhiteSpace(selectedCameraError))
+        {
+            return $"Restore home position of selected camera failed ({selectedCameraError}).";
+        }
+
+        return string.Empty;
     }
 
     private bool TryHandleCameraHotkey(KeyEventArgs e)
@@ -659,4 +684,27 @@ public sealed partial class MainWindow : Window
 
         _statusText.Text = $"Camera slot {slot} is not available.";
     }
+
+    private bool TryBeginHotkey(Key key)
+    {
+        if (!IsHandledHotkey(key))
+            return true;
+
+        return _pressedActionKeys.Add(key);
+    }
+
+    private void EndHotkey(Key key)
+    {
+        _pressedActionKeys.Remove(key);
+    }
+
+    private static bool IsHandledHotkey(Key key) => key is
+        Key.Home or Key.Enter or Key.NumPad0 or
+        Key.Left or Key.Right or Key.Up or Key.Down or
+        Key.M or
+        Key.Add or Key.OemPlus or Key.PageUp or
+        Key.Subtract or Key.OemMinus or Key.PageDown or
+        Key.Divide or Key.Multiply or
+        Key.D1 or Key.D2 or Key.D3 or Key.D4 or Key.D5 or Key.D6 or Key.D7 or Key.D8 or
+        Key.NumPad1 or Key.NumPad2 or Key.NumPad3 or Key.NumPad4 or Key.NumPad5 or Key.NumPad6 or Key.NumPad7 or Key.NumPad8;
 }
