@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Versioning;
 using Avalonia;
@@ -19,26 +20,24 @@ namespace PTZControl2;
 public sealed partial class MainWindow : Window
 {
     private const string SettingsRegistryPath = @"SOFTWARE\MRi-Software\PTZControl\Window";
-    private const string DeviceRegistryPath = @"SOFTWARE\MRi-Software\PTZControl\Device";
     private const string OptionsRegistryPath = @"SOFTWARE\MRi-Software\PTZControl\Options";
     private const string InvertPanValueNameFormat = "PTZControl2InvertPan{0}";
     private const string InvertTiltValueNameFormat = "PTZControl2InvertTilt{0}";
-    private const string EffectiveZoomRawMaxValueNameFormat = "PTZControl2EffectiveZoomRawMax{0}";
+    private const string LogitechControlValueNameFormat = "PTZControl2LogitechMotionControl{0}";
+    private const string MotorIntervalTimerValueNameFormat = "PTZControl2MotorIntervalTimer{0}";
     private const string ThemeModeValueName = "PTZControl2ThemeMode";
     private const string ShowOnlyLogitechCamerasValueName = "PTZControl2ShowOnlyLogitechCameras";
     private const string PreviewTopMostValueName = "PTZControl2PreviewTopMost";
-    private const string LogitechControlValueName = "LogitechMotionControl";
-    private const string MotorIntervalTimerValueName = "MotorIntervalTimer";
     private const string NoResetValueName = "NoReset";
 
     private readonly ICameraBackend _backend = CameraBackendFactory.Create();
-    private readonly Dictionary<string, CameraInfo> _cameraByLabel = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, bool> _startupHomeResults = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<CameraListItem> _displayedCameras = new();
     private readonly List<Button> _presetButtons = new();
     private readonly List<TextBlock> _presetLabels = new();
     private readonly HashSet<Key> _pressedActionKeys = new();
     private readonly Dictionary<VideoProcessingProperty, PictureControls> _pictureControls = new();
+    private readonly HashSet<VideoProcessingProperty> _unsupportedPictureProperties = new();
     private readonly HashSet<string> _presetUnsupportedCameraKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly StartupOptions _startupOptions;
     private readonly DispatcherTimer _successStatusClearTimer;
@@ -69,7 +68,6 @@ public sealed partial class MainWindow : Window
     private int _ownedWindowOffsetIndex;
     private bool _invertPan;
     private bool _invertTilt;
-    private int? _effectiveZoomRawMax;
     private bool _logitechControl;
     private bool _showOnlyLogitechCameras;
     private bool _previewTopMost;
@@ -94,12 +92,14 @@ public sealed partial class MainWindow : Window
         bool Pan,
         bool Tilt,
         bool Presets,
+        int PictureControls,
         bool? HomeResult,
         string? ZoomError,
         string? PanError,
         string? TiltError)
     {
         public bool Move => Pan || Tilt;
+        public bool Picture => PictureControls > 0;
         public bool Home => HomeResult ?? (Pan && Tilt);
         public bool DriverDefault => Zoom && Pan && Tilt;
     }
@@ -204,6 +204,8 @@ public sealed partial class MainWindow : Window
             ?? throw new InvalidOperationException($"{valueTextName} control not found.");
         _pictureControls[property] = new PictureControls(slider, valueText, 0, property);
     }
+
+    private void StepSlider_PointerReleased(object? sender, PointerReleasedEventArgs e) => Focus();
 
     private void MoveZoomTabButton_Click(object? sender, RoutedEventArgs e) => SelectLiveControlTab(picture: false);
 
@@ -400,7 +402,12 @@ public sealed partial class MainWindow : Window
     private void DefaultAllButton_Click(object? sender, RoutedEventArgs e)
     {
         if (IsActionAvailable(_defaultAllButton, "Driver default is not available for the selected camera."))
-            RunCameraAction("Default all", camera => _backend.RestoreDefault(camera, zoom: true, pan: true, tilt: true));
+            RunCameraAction("Default all", camera =>
+            {
+                _backend.RestoreDefault(camera, zoom: true, pan: true, tilt: true);
+                RestorePictureDefaults(camera);
+                RefreshPictureControls();
+            });
     }
 
     private void MemoryButton_Click(object? sender, RoutedEventArgs e)
@@ -424,9 +431,11 @@ public sealed partial class MainWindow : Window
         var dialog = new SettingsDialog
         {
             CameraLabel = camera is null ? "No camera selected." : $"Camera slot {slotIndex + 1}: {camera.Name}",
+            CameraNameLabel = camera is null ? "No camera selected." : $"Camera slot {slotIndex + 1}",
+            CameraSlotName = slotIndex >= 0 ? ReadCameraSlotAlias(slotIndex) ?? string.Empty : string.Empty,
+            DeviceDisplayName = camera?.Name ?? string.Empty,
             InvertPan = slotIndex >= 0 && _invertPan,
             InvertTilt = slotIndex >= 0 && _invertTilt,
-            EffectiveZoomRawMax = slotIndex >= 0 ? _effectiveZoomRawMax : null,
             LogitechControl = _logitechControl,
             MotorTime = _motorTime,
             ThemeMode = _themeMode,
@@ -442,7 +451,6 @@ public sealed partial class MainWindow : Window
             {
                 _invertPan = dialog.InvertPan;
                 _invertTilt = dialog.InvertTilt;
-                _effectiveZoomRawMax = dialog.EffectiveZoomRawMax;
             }
 
             _logitechControl = dialog.LogitechControl;
@@ -452,9 +460,16 @@ public sealed partial class MainWindow : Window
             _previewTopMost = OperatingSystem.IsWindows() && dialog.PreviewTopMost;
             _previewSession?.SetTopMost(_previewTopMost);
             SaveSettings(slotIndex, dialog.PresetNames);
+            if (slotIndex >= 0)
+                WriteCameraSlotAlias(slotIndex, dialog.CameraSlotName);
+
+            var renameStatus = RenameDeviceDisplayNameIfNeeded(camera, dialog.DeviceDisplayName);
             ApplyTheme();
             RefreshCameras();
-            SetStatus("Settings saved.");
+            if (string.IsNullOrWhiteSpace(renameStatus))
+                SetStatus("Settings saved.");
+            else
+                SetWarning($"Settings saved. {renameStatus}");
         }
     }
 
@@ -462,25 +477,17 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            _cameraByLabel.Clear();
             _displayedCameras.Clear();
             var allCameras = _backend.Enumerate();
             _displayedCameras.AddRange(allCameras
                 .Select((camera, index) => new CameraListItem(index + 1, camera))
                 .Where(item => ShouldShowCamera(item.Camera)));
 
-            var labels = _displayedCameras.Select(item =>
-            {
-                var label = $"{item.Slot}: {item.Camera.Name}";
-                if (!string.IsNullOrWhiteSpace(item.Camera.MonikerString))
-                    label += $" ({item.Camera.MonikerString})";
-                _cameraByLabel[label] = item.Camera;
-                return label;
-            }).ToList();
+            var cameraItems = BuildCameraDropdownItems(_displayedCameras);
 
-            _cameraSelector.ItemsSource = labels;
+            _cameraSelector.ItemsSource = cameraItems;
             _cameraSelector.SelectedIndex = SelectStartupCamera(_displayedCameras);
-            var startupStatus = BuildStartupStatus(allCameras.Count, labels.Count);
+            var startupStatus = BuildStartupStatus(allCameras.Count, cameraItems.Count);
             var selectedCamera = _cameraSelector.SelectedIndex >= 0 && _cameraSelector.SelectedIndex < _displayedCameras.Count
                 ? _displayedCameras[_cameraSelector.SelectedIndex].Camera
                 : null;
@@ -513,11 +520,14 @@ public sealed partial class MainWindow : Window
             return "No camera selected.";
 
         var cameraKey = GetCameraKey(camera);
+        var slotIndex = GetSelectedCameraSlotIndex();
+        var slotAlias = slotIndex >= 0 ? ReadCameraSlotAlias(slotIndex) : null;
         var lines = new List<string>
         {
-            $"Device Name: {camera.Name}",
+            $"Camera Slot: {(slotIndex >= 0 ? slotIndex + 1 : "unknown")}",
+            $"Camera Slot Name: {(string.IsNullOrWhiteSpace(slotAlias) ? "not set" : slotAlias)}",
+            $"Device Display Name: {camera.Name}",
             $"Device Path: {camera.MonikerString}",
-            $"Effective Zoom Raw Max: {(_effectiveZoomRawMax?.ToString() ?? "not set")}",
             ""
         };
 
@@ -588,6 +598,7 @@ public sealed partial class MainWindow : Window
                 {
                     var range = _backend.GetVideoProcessingRange(cameraKey, property);
                     var current = _backend.GetVideoProcessingValue(cameraKey, property);
+                    _unsupportedPictureProperties.Remove(property);
                     controls = controls with { DefaultValue = range.def };
                     _pictureControls[property] = controls;
                     controls.Slider.Minimum = range.min;
@@ -600,6 +611,7 @@ public sealed partial class MainWindow : Window
                 }
                 catch
                 {
+                    _unsupportedPictureProperties.Add(property);
                     controls.Slider.IsEnabled = false;
                     controls.ValueText.Text = "n/a";
                     unavailable.Add(property.ToString().ToLowerInvariant());
@@ -648,12 +660,28 @@ public sealed partial class MainWindow : Window
         if (!TryGetSelectedCamera(out var camera))
             return;
 
-        var cameraKey = GetCameraKey(camera);
-        foreach (var controls in _pictureControls.Values.Where(controls => controls.Slider.IsEnabled))
-            _backend.SetVideoProcessingValue(cameraKey, controls.Property, controls.DefaultValue);
-
+        RestorePictureDefaults(GetCameraKey(camera));
         RefreshPictureControls();
         _pictureStatusText.Text = "Picture controls reset to defaults.";
+    }
+
+    private void RestorePictureDefaults(string cameraKey)
+    {
+        foreach (var property in _pictureControls.Keys)
+        {
+            if (_unsupportedPictureProperties.Contains(property))
+                continue;
+
+            try
+            {
+                var range = _backend.GetVideoProcessingRange(cameraKey, property);
+                _backend.SetVideoProcessingValue(cameraKey, property, range.def);
+            }
+            catch
+            {
+                // Some cameras expose only a subset of picture controls.
+            }
+        }
     }
 
     private string UpdateSelectedCameraCapabilities()
@@ -674,11 +702,13 @@ public sealed partial class MainWindow : Window
         var zoom = ProbeCameraProperty(camera, CameraProperty.Zoom);
         var pan = ProbeCameraProperty(camera, CameraProperty.Pan);
         var tilt = ProbeCameraProperty(camera, CameraProperty.Tilt);
+        var pictureControls = ProbePictureControlCount(camera);
         return new CameraCapabilities(
             zoom.Supported,
             pan.Supported,
             tilt.Supported,
             !_presetUnsupportedCameraKeys.Contains(camera),
+            pictureControls,
             _startupHomeResults.TryGetValue(camera, out var startupHomeResult) ? startupHomeResult : null,
             zoom.Error,
             pan.Error,
@@ -697,6 +727,26 @@ public sealed partial class MainWindow : Window
         {
             return (false, ex.Message);
         }
+    }
+
+    private int ProbePictureControlCount(string camera)
+    {
+        var count = 0;
+        foreach (var property in _pictureControls.Keys)
+        {
+            try
+            {
+                _backend.GetVideoProcessingRange(camera, property);
+                _backend.GetVideoProcessingValue(camera, property);
+                count++;
+            }
+            catch
+            {
+                // Capability summary only needs the number of supported picture controls.
+            }
+        }
+
+        return count;
     }
 
     private void ApplyCameraCapabilities(CameraCapabilities? capabilities)
@@ -732,6 +782,7 @@ public sealed partial class MainWindow : Window
             ("pan", capabilities.Pan),
             ("tilt", capabilities.Tilt),
             ("zoom", capabilities.Zoom),
+            ("picture settings", capabilities.Picture),
             ("home", capabilities.Home),
             ("driver default", capabilities.DriverDefault)
         };
@@ -779,15 +830,11 @@ public sealed partial class MainWindow : Window
     {
         var range = _backend.GetRange(camera, CameraProperty.Zoom);
         var current = _backend.GetValue(camera, CameraProperty.Zoom);
-        var effectiveMax = _effectiveZoomRawMax is { } configuredMax
-            ? Math.Clamp(configuredMax, range.min, range.max)
-            : range.max;
-        var effectiveCurrent = Math.Clamp(current, range.min, effectiveMax);
-        var delta = (int)Math.Round((effectiveMax - range.min) * (deltaPercent / 100.0));
-        if (delta == 0 && deltaPercent != 0 && effectiveMax > range.min)
+        var delta = (int)Math.Round((range.max - range.min) * (deltaPercent / 100.0));
+        if (delta == 0 && deltaPercent != 0 && range.max > range.min)
             delta = Math.Sign(deltaPercent) * Math.Max(1, range.step);
 
-        var zoom = Math.Clamp(effectiveCurrent + delta, range.min, effectiveMax);
+        var zoom = Math.Clamp(current + delta, range.min, range.max);
         _backend.SetPanTiltZoom(camera, zoom: zoom);
         var after = _backend.GetValue(camera, CameraProperty.Zoom);
         return (current, after);
@@ -874,7 +921,7 @@ public sealed partial class MainWindow : Window
             return true;
 
         camera = null!;
-        SetWarning(_cameraByLabel.Count == 0
+        SetWarning(_displayedCameras.Count == 0
             ? "No camera available. Connect a camera and click Refresh."
             : "Select a camera first.");
         return false;
@@ -882,11 +929,89 @@ public sealed partial class MainWindow : Window
 
     private bool TryGetSelectedCameraQuiet(out CameraInfo camera)
     {
-        if (_cameraSelector.SelectedItem is string label && _cameraByLabel.TryGetValue(label, out camera!))
+        if (_cameraSelector.SelectedItem is ComboBoxItem { Tag: CameraInfo selectedCamera })
+        {
+            camera = selectedCamera;
             return true;
+        }
 
         camera = null!;
         return false;
+    }
+
+    private static List<ComboBoxItem> BuildCameraDropdownItems(IEnumerable<CameraListItem> cameras)
+    {
+        var cameraList = cameras.ToList();
+        var duplicateNames = cameraList
+            .GroupBy(item => item.Camera.Name, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return cameraList
+            .Select(item =>
+            {
+                var label = BuildCameraDropdownLabel(item);
+                if (duplicateNames.Contains(item.Camera.Name))
+                    label += $" ({BuildDevicePathFingerprint(item.Camera.MonikerString)})";
+
+                return new ComboBoxItem
+                {
+                    Content = label,
+                    Tag = item.Camera,
+                    [ToolTip.TipProperty] = item.Camera.MonikerString
+                };
+            })
+            .ToList();
+    }
+
+    private static string BuildCameraDropdownLabel(CameraListItem item)
+    {
+        var slotAlias = ReadCameraSlotAlias(item.Slot - 1);
+        if (!string.IsNullOrWhiteSpace(slotAlias) &&
+            !string.Equals(slotAlias, item.Camera.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{item.Slot}: {slotAlias} ({item.Camera.Name})";
+        }
+
+        return $"{item.Slot}: {item.Camera.Name}";
+    }
+
+    private static string BuildDevicePathFingerprint(string devicePath)
+    {
+        if (string.IsNullOrWhiteSpace(devicePath))
+            return "no device path";
+
+        var parts = devicePath.Split('#');
+        if (parts.Length >= 3)
+        {
+            var instance = parts[2].Split('&', StringSplitOptions.RemoveEmptyEntries);
+            var instanceMiddle = instance.Length > 1 ? instance[1] : parts[2];
+            var instanceEnd = instance.Length > 0 ? instance[^1] : parts[2];
+            var tail = ShortenPathTail(parts[^1]);
+            return $"...{instanceMiddle}&{instanceEnd} / {tail}";
+        }
+
+        return ShortenMiddle(devicePath, 42);
+    }
+
+    private static string ShortenPathTail(string value)
+    {
+        var trimmed = value.Trim('\\', '{', '}');
+        var separatorIndex = trimmed.LastIndexOf('\\');
+        if (separatorIndex >= 0 && separatorIndex < trimmed.Length - 1)
+            trimmed = trimmed[(separatorIndex + 1)..].Trim('{', '}');
+
+        return trimmed.Length <= 8 ? trimmed : trimmed[..8];
+    }
+
+    private static string ShortenMiddle(string value, int maxLength)
+    {
+        if (value.Length <= maxLength)
+            return value;
+
+        var sideLength = Math.Max(4, (maxLength - 3) / 2);
+        return $"{value[..sideLength]}...{value[^sideLength..]}";
     }
 
     private void UpdatePresetLabels()
@@ -909,6 +1034,20 @@ public sealed partial class MainWindow : Window
         return null;
     }
 
+    private static string? ReadCameraSlotAlias(int cameraSlotIndex)
+    {
+        if (OperatingSystem.IsWindows())
+            return ReadCameraSlotAliasFromRegistry(cameraSlotIndex);
+
+        return null;
+    }
+
+    private static void WriteCameraSlotAlias(int cameraSlotIndex, string name)
+    {
+        if (OperatingSystem.IsWindows())
+            WriteCameraSlotAliasToRegistry(cameraSlotIndex, name);
+    }
+
     [SupportedOSPlatform("windows")]
     private static string? ReadPresetNameFromRegistry(int cameraSlotIndex, int preset)
     {
@@ -917,13 +1056,86 @@ public sealed partial class MainWindow : Window
         return key?.GetValue(valueName) as string;
     }
 
-    private static int? TryReadNullableInt(object? value)
+    [SupportedOSPlatform("windows")]
+    private static string? ReadCameraSlotAliasFromRegistry(int cameraSlotIndex)
     {
-        if (value is null)
-            return null;
-
-        return int.TryParse(Convert.ToString(value), out var result) ? result : null;
+        var valueName = $"CameraAlias{cameraSlotIndex + 1}";
+        using var key = Registry.CurrentUser.OpenSubKey(SettingsRegistryPath);
+        return key?.GetValue(valueName) as string;
     }
+
+    [SupportedOSPlatform("windows")]
+    private static void WriteCameraSlotAliasToRegistry(int cameraSlotIndex, string name)
+    {
+        var valueName = $"CameraAlias{cameraSlotIndex + 1}";
+        using var key = Registry.CurrentUser.CreateSubKey(SettingsRegistryPath);
+        key?.SetValue(valueName, string.IsNullOrWhiteSpace(name) ? string.Empty : name.Trim(), RegistryValueKind.String);
+    }
+
+    private string RenameDeviceDisplayNameIfNeeded(CameraInfo? camera, string requestedName)
+    {
+        if (!OperatingSystem.IsWindows() || camera is null)
+            return string.Empty;
+
+        requestedName = requestedName.Trim();
+        if (string.IsNullOrWhiteSpace(requestedName) ||
+            string.Equals(requestedName, camera.Name, StringComparison.Ordinal))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            _backend.SetDirectShowCameraName(camera.MonikerString, requestedName);
+            return $"Device display name changed to '{requestedName}'.";
+        }
+        catch
+        {
+            if (TrySetDirectShowCameraNameElevated(camera.MonikerString, requestedName))
+                return $"Device display name changed to '{requestedName}'.";
+
+            return $"Device display name change failed; value was reset to current device name '{camera.Name}'.";
+        }
+    }
+
+    private static bool TrySetDirectShowCameraNameElevated(string devicePath, string friendlyName)
+    {
+        var executablePath = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(executablePath))
+            return false;
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = executablePath,
+                Arguments = string.Join(" ", new[]
+                {
+                    "--set-directshow-camera-name",
+                    "--device-path",
+                    QuoteArgument(devicePath),
+                    "--friendlyname",
+                    QuoteArgument(friendlyName)
+                }),
+                UseShellExecute = true,
+                Verb = "runas",
+                WindowStyle = ProcessWindowStyle.Hidden
+            });
+
+            if (process is null)
+                return false;
+
+            process.WaitForExit();
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string QuoteArgument(string value) =>
+        $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 
     private static string GetCameraKey(CameraInfo camera) =>
         string.IsNullOrWhiteSpace(camera.MonikerString) ? camera.Name : camera.MonikerString;
@@ -969,10 +1181,6 @@ public sealed partial class MainWindow : Window
         using var key = Registry.CurrentUser.OpenSubKey(SettingsRegistryPath);
         _themeMode = Convert.ToString(key?.GetValue(ThemeModeValueName, "System")) ?? "System";
 
-        using var deviceKey = Registry.CurrentUser.OpenSubKey(DeviceRegistryPath);
-        _logitechControl = Convert.ToInt32(deviceKey?.GetValue(LogitechControlValueName, 0)) != 0;
-        _motorTime = Convert.ToInt32(deviceKey?.GetValue(MotorIntervalTimerValueName, 70));
-
         using var optionsKey = Registry.CurrentUser.OpenSubKey(OptionsRegistryPath);
         _noReset = _startupOptions.NoReset ?? Convert.ToInt32(optionsKey?.GetValue(NoResetValueName, 0)) != 0;
         _showOnlyLogitechCameras = Convert.ToInt32(optionsKey?.GetValue(ShowOnlyLogitechCamerasValueName, 0)) != 0;
@@ -996,7 +1204,10 @@ public sealed partial class MainWindow : Window
         using var key = Registry.CurrentUser.OpenSubKey(SettingsRegistryPath);
         _invertPan = Convert.ToInt32(key?.GetValue(string.Format(InvertPanValueNameFormat, slot), 0)) != 0;
         _invertTilt = Convert.ToInt32(key?.GetValue(string.Format(InvertTiltValueNameFormat, slot), 0)) != 0;
-        _effectiveZoomRawMax = TryReadNullableInt(key?.GetValue(string.Format(EffectiveZoomRawMaxValueNameFormat, slot)));
+        _logitechControl = Convert.ToInt32(key?.GetValue(string.Format(LogitechControlValueNameFormat, slot), 0)) != 0;
+        _motorTime = Convert.ToInt32(key?.GetValue(string.Format(MotorIntervalTimerValueNameFormat, slot), 70));
+        if (_motorTime <= 0)
+            _motorTime = 70;
     }
 
     private void SaveSettings(int cameraSlotIndex, IReadOnlyList<string> presetNames)
@@ -1018,11 +1229,8 @@ public sealed partial class MainWindow : Window
             var slot = cameraSlotIndex + 1;
             key?.SetValue(string.Format(InvertPanValueNameFormat, slot), _invertPan ? 1 : 0, RegistryValueKind.DWord);
             key?.SetValue(string.Format(InvertTiltValueNameFormat, slot), _invertTilt ? 1 : 0, RegistryValueKind.DWord);
-            var effectiveZoomRawMaxValueName = string.Format(EffectiveZoomRawMaxValueNameFormat, slot);
-            if (_effectiveZoomRawMax is { } effectiveZoomRawMax)
-                key?.SetValue(effectiveZoomRawMaxValueName, effectiveZoomRawMax, RegistryValueKind.DWord);
-            else
-                key?.DeleteValue(effectiveZoomRawMaxValueName, throwOnMissingValue: false);
+            key?.SetValue(string.Format(LogitechControlValueNameFormat, slot), _logitechControl ? 1 : 0, RegistryValueKind.DWord);
+            key?.SetValue(string.Format(MotorIntervalTimerValueNameFormat, slot), _motorTime > 0 ? _motorTime : 70, RegistryValueKind.DWord);
             for (var preset = 1; preset <= 8; preset++)
             {
                 var valueName = $"Tooltip{preset + cameraSlotIndex * 100}";
@@ -1030,10 +1238,6 @@ public sealed partial class MainWindow : Window
                 key?.SetValue(valueName, value, RegistryValueKind.String);
             }
         }
-
-        using var deviceKey = Registry.CurrentUser.CreateSubKey(DeviceRegistryPath);
-        deviceKey?.SetValue(LogitechControlValueName, _logitechControl ? 1 : 0, RegistryValueKind.DWord);
-        deviceKey?.SetValue(MotorIntervalTimerValueName, _motorTime, RegistryValueKind.DWord);
 
         using var optionsKey = Registry.CurrentUser.CreateSubKey(OptionsRegistryPath);
         optionsKey?.SetValue(ShowOnlyLogitechCamerasValueName, _showOnlyLogitechCameras ? 1 : 0, RegistryValueKind.DWord);

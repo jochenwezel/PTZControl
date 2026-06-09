@@ -183,7 +183,7 @@
                 <TextBlock Text="Home" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button x:Name="DefaultAllButton" Classes="preset" Background="#4B647C" Click="DefaultAllButton_Click" ToolTip.Tip="Restore driver default values for zoom, pan, and tilt.">
+            <Button x:Name="DefaultAllButton" Classes="preset" Background="#4B647C" Click="DefaultAllButton_Click" ToolTip.Tip="Restore driver default values for zoom, pan, tilt, and supported picture settings.">
               <StackPanel Spacing="4">
                 <TextBlock Text="↺" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock Text="Default" TextWrapping="Wrap" FontSize="13" />
@@ -207,18 +207,25 @@
 
       <Border Grid.Column="1" Classes="panel" Width="430">
         <Grid RowDefinitions="Auto,*" RowSpacing="8">
-          <StackPanel Orientation="Horizontal" Spacing="22">
-            <Button x:Name="MoveZoomTabButton"
-                    Classes="tabTitle selected"
-                    Click="MoveZoomTabButton_Click">
-              <TextBlock Text="Move/Zoom" Classes="tabTitleText" />
-            </Button>
-            <Button x:Name="PictureTabButton"
-                    Classes="tabTitle"
-                    Click="PictureTabButton_Click">
-              <TextBlock Text="Picture" Classes="tabTitleText" />
-            </Button>
-          </StackPanel>
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="22">
+              <Button x:Name="MoveZoomTabButton"
+                      Classes="tabTitle selected"
+                      Click="MoveZoomTabButton_Click">
+                <TextBlock Text="Move/Zoom" Classes="tabTitleText" />
+              </Button>
+              <Button x:Name="PictureTabButton"
+                      Classes="tabTitle"
+                      Click="PictureTabButton_Click">
+                <TextBlock Text="Picture" Classes="tabTitleText" />
+              </Button>
+            </StackPanel>
+            <TextBlock Grid.Column="1"
+                       Text="Live camera control"
+                       Foreground="{DynamicResource AppMutedTextBrush}"
+                       FontSize="12"
+                       VerticalAlignment="Center" />
+          </Grid>
           <Grid Grid.Row="1">
             <StackPanel x:Name="MoveZoomTabPanel" Spacing="9" Margin="0,4,0,0">
               <Grid ColumnDefinitions="76,76,76,28,76" RowDefinitions="76,76,76" ColumnSpacing="8" RowSpacing="8" HorizontalAlignment="Center">
@@ -277,6 +284,7 @@
                         TickFrequency="1"
                         IsSnapToTickEnabled="False"
                         Value="10"
+                        PointerReleased="StepSlider_PointerReleased"
                         VerticalAlignment="Center" />
               </Grid>
             </StackPanel>

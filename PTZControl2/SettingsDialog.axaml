@@ -22,10 +22,64 @@
       <Setter Property="MinWidth" Value="92" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
     </Style>
+    <Style Selector="Border.warningBox">
+      <Setter Property="Background" Value="{DynamicResource AppWarningStatusBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AppWarningStatusBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="10" />
+    </Style>
   </Window.Styles>
 
   <Grid Margin="20" RowDefinitions="*,Auto" RowSpacing="16">
     <TabControl>
+      <TabItem Header="Camera">
+        <ScrollViewer Margin="4,16">
+          <StackPanel Spacing="12" Margin="0,0,18,0">
+            <TextBlock Text="Camera names" Classes="sectionTitle" />
+            <TextBlock x:Name="CameraNameLabelTextBlock"
+                       Classes="hint" />
+            <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+              <TextBlock Text="Camera slot name"
+                         VerticalAlignment="Center" />
+              <TextBox x:Name="CameraSlotNameTextBox"
+                       Grid.Column="1" />
+              <TextBlock Grid.Row="1"
+                         Text="Device display name"
+                         VerticalAlignment="Center" />
+              <TextBox x:Name="DeviceDisplayNameTextBox"
+                       Grid.Row="1"
+                       Grid.Column="1" />
+            </Grid>
+            <Border Classes="warningBox">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <TextBlock Text="⚠"
+                           FontSize="18"
+                           VerticalAlignment="Top" />
+                <TextBlock Grid.Column="1"
+                           Text="Changing the device display name is a system-wide, persistent Windows device rename and may require administrator approval."
+                           TextWrapping="Wrap" />
+              </Grid>
+            </Border>
+            <StackPanel x:Name="CameraOptionsPanel" Spacing="12" Margin="0,12,0,0">
+              <TextBlock Text="Global camera options" Classes="sectionTitle" />
+              <TextBlock Classes="hint"
+                         Text="These settings apply to the whole PTZControl2 camera list and preview behavior, not only to the selected camera slot." />
+              <TextBlock Text="Camera list" Classes="sectionTitle" Margin="0,8,0,0" />
+              <CheckBox x:Name="ShowOnlyLogitechCamerasCheckBox"
+                        Content="Show only Logitech USB cameras" />
+              <TextBlock Classes="hint"
+                         Text="This Windows-only filter uses the USB vendor ID in the device path. Slot numbers stay unchanged." />
+              <TextBlock Text="Live preview" Classes="sectionTitle" Margin="0,12,0,0" />
+              <CheckBox x:Name="PreviewTopMostCheckBox"
+                        Content="Keep live preview on top" />
+              <TextBlock Classes="hint"
+                         Text="When disabled, the preview window stays independent while PTZControl2 remains the primary control surface." />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
       <TabItem Header="Movement">
         <StackPanel Margin="4,16" Spacing="12">
           <TextBlock Text="Camera movement" Classes="sectionTitle" />
@@ -35,19 +89,8 @@
                     Content="Invert pan actions" />
           <CheckBox x:Name="InvertTiltCheckBox"
                     Content="Invert tilt actions" />
-          <Grid ColumnDefinitions="Auto,120,Auto" ColumnSpacing="10">
-            <TextBlock Text="Effective zoom raw max"
-                       VerticalAlignment="Center" />
-            <TextBox x:Name="EffectiveZoomRawMaxTextBox"
-                     Grid.Column="1"
-                     HorizontalContentAlignment="Center" />
-            <TextBlock Grid.Column="2"
-                       Text="optional"
-                       VerticalAlignment="Center"
-                       Classes="hint" />
-          </Grid>
           <TextBlock Classes="hint"
-                     Text="Use pan/tilt inversion when the camera is mounted upside down or the desired operator direction differs from the device direction. Use effective zoom max when a webcam reports raw zoom values that no longer change the visible image." />
+                     Text="Use pan/tilt inversion when the camera is mounted upside down or the desired operator direction differs from the device direction." />
         </StackPanel>
       </TabItem>
 
@@ -55,8 +98,8 @@
         <ScrollViewer Margin="4,16">
           <StackPanel Spacing="10" Margin="0,0,18,0">
             <TextBlock Text="Preset names" Classes="sectionTitle" />
-            <TextBlock Classes="hint"
-                       Text="These names are stored in the same registry values as the original PTZControl tooltip texts for the selected camera slot." />
+            <TextBlock x:Name="PresetCameraLabelTextBlock"
+                       Classes="hint" />
             <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
               <TextBlock Text="Preset 1" VerticalAlignment="Center" />
               <TextBox x:Name="PresetName1TextBox" Grid.Column="1" />
@@ -82,8 +125,23 @@
       <TabItem Header="Compatibility">
         <StackPanel Margin="4,16" Spacing="14">
           <TextBlock Text="Compatibility options" Classes="sectionTitle" />
-          <CheckBox x:Name="LogitechControlCheckBox"
-                    Content="Use Logitech peripheral control extension" />
+          <TextBlock x:Name="CompatibilityCameraLabelTextBlock"
+                     Classes="hint" />
+          <StackPanel Spacing="8">
+            <TextBlock Text="Movement control backend" />
+            <RadioButton x:Name="StandardUvcControlRadioButton"
+                         GroupName="MovementControlBackend"
+                         Content="Standard UVC controls" />
+            <TextBlock Classes="hint"
+                       Margin="24,-6,0,0"
+                       Text="Use regular Windows camera driver controls for pan, tilt, and zoom. This is the preferred default when the camera exposes these controls correctly." />
+            <RadioButton x:Name="LogitechControlRadioButton"
+                         GroupName="MovementControlBackend"
+                         Content="Logitech extension controls" />
+            <TextBlock Classes="hint"
+                       Margin="24,-6,0,0"
+                       Text="Use the original PTZControl Logitech peripheral control extension path for compatible Logitech PTZ cameras." />
+          </StackPanel>
           <Grid ColumnDefinitions="Auto,120,Auto" ColumnSpacing="10">
             <TextBlock Text="Motor time"
                        VerticalAlignment="Center" />
@@ -114,20 +172,6 @@
         </StackPanel>
       </TabItem>
 
-      <TabItem x:Name="CameraFilterTab" Header="Cameras">
-        <StackPanel Margin="4,16" Spacing="12">
-          <TextBlock Text="Camera list" Classes="sectionTitle" />
-          <CheckBox x:Name="ShowOnlyLogitechCamerasCheckBox"
-                    Content="Show only Logitech USB cameras" />
-          <TextBlock Classes="hint"
-                     Text="This Windows-only filter uses the USB vendor ID in the device path. Slot numbers stay unchanged." />
-          <TextBlock Text="Live preview" Classes="sectionTitle" Margin="0,12,0,0" />
-          <CheckBox x:Name="PreviewTopMostCheckBox"
-                    Content="Keep live preview on top" />
-          <TextBlock Classes="hint"
-                     Text="When disabled, PTZControl2 still brings an open preview window forward when the main window is activated." />
-        </StackPanel>
-      </TabItem>
     </TabControl>
 
     <StackPanel Grid.Row="1"

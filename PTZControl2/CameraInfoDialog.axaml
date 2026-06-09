@@ -7,6 +7,13 @@
         MinWidth="480"
         MinHeight="320"
         WindowStartupLocation="Manual">
+  <Window.Styles>
+    <Style Selector="Button.dialogAction">
+      <Setter Property="MinWidth" Value="92" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+  </Window.Styles>
+
   <Grid Margin="16" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
     <StackPanel Orientation="Horizontal" Spacing="12">
       <TextBlock Text="Camera monitor"
@@ -30,10 +37,12 @@
                 Orientation="Horizontal"
                 HorizontalAlignment="Right"
                 Spacing="8">
-      <Button Content="Refresh now"
+      <Button Classes="dialogAction"
+              Content="Refresh now"
               MinWidth="110"
               Click="RefreshNowButton_Click" />
-      <Button Content="Close"
+      <Button Classes="dialogAction"
+              Content="Close"
               MinWidth="90"
               Click="CloseButton_Click" />
     </StackPanel>
