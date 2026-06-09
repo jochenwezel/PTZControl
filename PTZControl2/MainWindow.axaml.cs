@@ -23,12 +23,16 @@ public sealed partial class MainWindow : Window
     private const string InvertPanValueNameFormat = "PTZControl2InvertPan{0}";
     private const string InvertTiltValueNameFormat = "PTZControl2InvertTilt{0}";
     private const string ThemeModeValueName = "PTZControl2ThemeMode";
+    private const string ShowOnlyLogitechCamerasValueName = "PTZControl2ShowOnlyLogitechCameras";
     private const string LogitechControlValueName = "LogitechMotionControl";
     private const string MotorIntervalTimerValueName = "MotorIntervalTimer";
     private const string NoResetValueName = "NoReset";
 
     private readonly ICameraBackend _backend = CameraBackendFactory.Create();
     private readonly Dictionary<string, CameraInfo> _cameraByLabel = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, bool> _startupHomeResults = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<CameraListItem> _displayedCameras = new();
+    private readonly List<Button> _presetButtons = new();
     private readonly List<TextBlock> _presetLabels = new();
     private readonly HashSet<Key> _pressedActionKeys = new();
     private readonly StartupOptions _startupOptions;
@@ -38,15 +42,41 @@ public sealed partial class MainWindow : Window
     private Slider _stepSlider = null!;
     private TextBlock _stepValueText = null!;
     private Button _memoryButton = null!;
+    private Button _homeButton = null!;
+    private Button _defaultAllButton = null!;
+    private Button _panLeftButton = null!;
+    private Button _panRightButton = null!;
+    private Button _tiltUpButton = null!;
+    private Button _tiltDownButton = null!;
+    private Button _zoomInButton = null!;
+    private Button _zoomOutButton = null!;
     private bool _invertPan;
     private bool _invertTilt;
     private bool _logitechControl;
+    private bool _showOnlyLogitechCameras;
     private bool _noReset;
     private bool _startupActionsApplied;
     private int _motorTime = 70;
     private string _themeMode = "System";
     private bool _memoryMode;
     private string? _startupSelectionWarning;
+
+    private sealed record CameraListItem(int Slot, CameraInfo Camera);
+
+    private sealed record CameraCapabilities(
+        bool Zoom,
+        bool Pan,
+        bool Tilt,
+        bool? HomeResult,
+        string? ZoomError,
+        string? PanError,
+        string? TiltError)
+    {
+        public bool Move => Pan || Tilt;
+        public bool Home => HomeResult ?? (Pan && Tilt);
+        public bool DriverDefault => Zoom && Pan && Tilt;
+        public bool Presets => Zoom || Pan || Tilt;
+    }
 
     public MainWindow()
         : this(new StartupOptions())
@@ -75,8 +105,26 @@ public sealed partial class MainWindow : Window
             ?? throw new InvalidOperationException("StepValueText control not found.");
         _memoryButton = this.FindControl<Button>("MemoryButton")
             ?? throw new InvalidOperationException("MemoryButton control not found.");
+        _homeButton = this.FindControl<Button>("HomeButton")
+            ?? throw new InvalidOperationException("HomeButton control not found.");
+        _defaultAllButton = this.FindControl<Button>("DefaultAllButton")
+            ?? throw new InvalidOperationException("DefaultAllButton control not found.");
+        _panLeftButton = this.FindControl<Button>("PanLeftButton")
+            ?? throw new InvalidOperationException("PanLeftButton control not found.");
+        _panRightButton = this.FindControl<Button>("PanRightButton")
+            ?? throw new InvalidOperationException("PanRightButton control not found.");
+        _tiltUpButton = this.FindControl<Button>("TiltUpButton")
+            ?? throw new InvalidOperationException("TiltUpButton control not found.");
+        _tiltDownButton = this.FindControl<Button>("TiltDownButton")
+            ?? throw new InvalidOperationException("TiltDownButton control not found.");
+        _zoomInButton = this.FindControl<Button>("ZoomInButton")
+            ?? throw new InvalidOperationException("ZoomInButton control not found.");
+        _zoomOutButton = this.FindControl<Button>("ZoomOutButton")
+            ?? throw new InvalidOperationException("ZoomOutButton control not found.");
         for (var preset = 1; preset <= 8; preset++)
         {
+            _presetButtons.Add(this.FindControl<Button>($"Preset{preset}Button")
+                ?? throw new InvalidOperationException($"Preset{preset}Button control not found."));
             _presetLabels.Add(this.FindControl<TextBlock>($"Preset{preset}Text")
                 ?? throw new InvalidOperationException($"Preset{preset}Text control not found."));
         }
@@ -104,8 +152,11 @@ public sealed partial class MainWindow : Window
         CancelMemoryModeForOtherAction();
         LoadSelectedCameraSettings();
         UpdatePresetLabels();
+        var capabilityStatus = UpdateSelectedCameraCapabilities();
         _statusText.Text = TryGetSelectedCamera(out var camera)
-            ? $"Selected camera: {camera.Name}"
+            ? string.IsNullOrWhiteSpace(capabilityStatus)
+                ? $"Selected camera: {camera.Name}"
+                : $"Selected camera: {camera.Name}. {capabilityStatus}"
             : "Select a camera.";
     }
 
@@ -141,6 +192,9 @@ public sealed partial class MainWindow : Window
 
     private void RunPresetAction(int preset)
     {
+        if (!IsActionAvailable(_presetButtons[preset - 1], "Preset commands are not available for the selected camera."))
+            return;
+
         if (_memoryMode)
         {
             SetMemoryMode(false);
@@ -151,63 +205,100 @@ public sealed partial class MainWindow : Window
         RunCameraAction($"Restore preset {preset}", camera => _backend.RestorePreset(camera, preset));
     }
 
-    private void TiltUpButton_Click(object? sender, RoutedEventArgs e) =>
-        RunCameraAction($"Tilt up {StepPercent}", camera => _backend.MoveRelativePanTilt(camera, y: TiltDelta(StepPercent)));
+    private void TiltUpButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (IsActionAvailable(_tiltUpButton, "Tilt is not available for the selected camera."))
+            RunCameraAction($"Tilt up {StepPercent}", camera => _backend.MoveRelativePanTilt(camera, y: TiltDelta(StepPercent)));
+    }
 
-    private void TiltDownButton_Click(object? sender, RoutedEventArgs e) =>
-        RunCameraAction($"Tilt down {StepPercent}", camera => _backend.MoveRelativePanTilt(camera, y: TiltDelta(-StepPercent)));
+    private void TiltDownButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (IsActionAvailable(_tiltDownButton, "Tilt is not available for the selected camera."))
+            RunCameraAction($"Tilt down {StepPercent}", camera => _backend.MoveRelativePanTilt(camera, y: TiltDelta(-StepPercent)));
+    }
 
-    private void PanLeftButton_Click(object? sender, RoutedEventArgs e) =>
-        RunCameraAction($"Pan left {StepPercent}", camera => _backend.MoveRelativePanTilt(camera, x: PanDelta(-StepPercent)));
+    private void PanLeftButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (IsActionAvailable(_panLeftButton, "Pan is not available for the selected camera."))
+            RunCameraAction($"Pan left {StepPercent}", camera => _backend.MoveRelativePanTilt(camera, x: PanDelta(-StepPercent)));
+    }
 
-    private void PanRightButton_Click(object? sender, RoutedEventArgs e) =>
-        RunCameraAction($"Pan right {StepPercent}", camera => _backend.MoveRelativePanTilt(camera, x: PanDelta(StepPercent)));
+    private void PanRightButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (IsActionAvailable(_panRightButton, "Pan is not available for the selected camera."))
+            RunCameraAction($"Pan right {StepPercent}", camera => _backend.MoveRelativePanTilt(camera, x: PanDelta(StepPercent)));
+    }
 
-    private void HomeButton_Click(object? sender, RoutedEventArgs e) =>
-        RunCameraAction("Home", camera => _backend.RestoreHome(camera, zoom: false, move: true));
+    private void HomeButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (IsActionAvailable(_homeButton, "Home is not available for the selected camera."))
+            RunCameraAction("Home", camera => _backend.RestoreHome(camera, zoom: false, move: true));
+    }
 
-    private void ZoomOutButton_Click(object? sender, RoutedEventArgs e) =>
-        RunCameraAction($"Zoom out {StepPercent}", camera => ChangeZoom(camera, -StepPercent));
+    private void ZoomOutButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (IsActionAvailable(_zoomOutButton, "Zoom is not available for the selected camera."))
+            RunCameraAction($"Zoom out {StepPercent}", camera => ChangeZoom(camera, -StepPercent));
+    }
 
-    private void ZoomInButton_Click(object? sender, RoutedEventArgs e) =>
-        RunCameraAction($"Zoom in {StepPercent}", camera => ChangeZoom(camera, StepPercent));
+    private void ZoomInButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (IsActionAvailable(_zoomInButton, "Zoom is not available for the selected camera."))
+            RunCameraAction($"Zoom in {StepPercent}", camera => ChangeZoom(camera, StepPercent));
+    }
 
-    private void DefaultAllButton_Click(object? sender, RoutedEventArgs e) =>
-        RunCameraAction("Default all", camera => _backend.RestoreDefault(camera, zoom: true, pan: true, tilt: true));
+    private void DefaultAllButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (IsActionAvailable(_defaultAllButton, "Driver default is not available for the selected camera."))
+            RunCameraAction("Default all", camera => _backend.RestoreDefault(camera, zoom: true, pan: true, tilt: true));
+    }
 
-    private void MemoryButton_Click(object? sender, RoutedEventArgs e) => SetMemoryMode(!_memoryMode);
+    private void MemoryButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (IsActionAvailable(_memoryButton, "Preset commands are not available for the selected camera."))
+            SetMemoryMode(!_memoryMode);
+    }
 
     private async void SettingsButton_Click(object? sender, RoutedEventArgs e)
     {
         CancelMemoryModeForOtherAction();
-        if (!TryGetSelectedCamera(out var camera))
-            return;
-
-        var slotIndex = _cameraSelector.SelectedIndex;
-        var presetNames = Enumerable.Range(1, 8)
-            .Select(preset => ReadPresetName(slotIndex, preset) ?? string.Empty)
-            .ToList();
+        var slotIndex = GetSelectedCameraSlotIndex();
+        var hasSelectedCamera = _cameraSelector.SelectedIndex >= 0 &&
+            _cameraSelector.SelectedIndex < _displayedCameras.Count;
+        var camera = hasSelectedCamera ? _displayedCameras[_cameraSelector.SelectedIndex].Camera : null;
+        var presetNames = slotIndex >= 0
+            ? Enumerable.Range(1, 8)
+                .Select(preset => ReadPresetName(slotIndex, preset) ?? string.Empty)
+                .ToList()
+            : Enumerable.Repeat(string.Empty, 8).ToList();
         var dialog = new SettingsDialog
         {
-            CameraLabel = $"Camera slot {slotIndex + 1}: {camera.Name}",
-            InvertPan = _invertPan,
-            InvertTilt = _invertTilt,
+            CameraLabel = camera is null ? "No camera selected." : $"Camera slot {slotIndex + 1}: {camera.Name}",
+            InvertPan = slotIndex >= 0 && _invertPan,
+            InvertTilt = slotIndex >= 0 && _invertTilt,
             LogitechControl = _logitechControl,
             MotorTime = _motorTime,
             ThemeMode = _themeMode,
+            ShowCameraFilterOptions = OperatingSystem.IsWindows(),
+            ShowOnlyLogitechCameras = _showOnlyLogitechCameras,
             PresetNames = presetNames
         };
 
         if (await dialog.ShowDialog<bool>(this))
         {
-            _invertPan = dialog.InvertPan;
-            _invertTilt = dialog.InvertTilt;
+            if (slotIndex >= 0)
+            {
+                _invertPan = dialog.InvertPan;
+                _invertTilt = dialog.InvertTilt;
+            }
+
             _logitechControl = dialog.LogitechControl;
             _motorTime = dialog.MotorTime;
             _themeMode = dialog.ThemeMode;
+            _showOnlyLogitechCameras = OperatingSystem.IsWindows() && dialog.ShowOnlyLogitechCameras;
             SaveSettings(slotIndex, dialog.PresetNames);
             ApplyTheme();
-            UpdatePresetLabels();
+            RefreshCameras();
             _statusText.Text = "Settings saved.";
         }
     }
@@ -217,28 +308,43 @@ public sealed partial class MainWindow : Window
         try
         {
             _cameraByLabel.Clear();
-            var cameras = _backend.Enumerate();
-            var labels = cameras.Select((camera, index) =>
+            _displayedCameras.Clear();
+            var allCameras = _backend.Enumerate();
+            _displayedCameras.AddRange(allCameras
+                .Select((camera, index) => new CameraListItem(index + 1, camera))
+                .Where(item => ShouldShowCamera(item.Camera)));
+
+            var labels = _displayedCameras.Select(item =>
             {
-                var label = $"{index + 1}: {camera.Name}";
-                if (!string.IsNullOrWhiteSpace(camera.MonikerString))
-                    label += $" ({camera.MonikerString})";
-                _cameraByLabel[label] = camera;
+                var label = $"{item.Slot}: {item.Camera.Name}";
+                if (!string.IsNullOrWhiteSpace(item.Camera.MonikerString))
+                    label += $" ({item.Camera.MonikerString})";
+                _cameraByLabel[label] = item.Camera;
                 return label;
             }).ToList();
 
             _cameraSelector.ItemsSource = labels;
-            _cameraSelector.SelectedIndex = SelectStartupCamera(cameras);
-            var startupStatus = BuildStartupStatus(labels.Count);
-            var resetStatus = ApplyStartupCameraReset(cameras);
+            _cameraSelector.SelectedIndex = SelectStartupCamera(_displayedCameras);
+            var startupStatus = BuildStartupStatus(allCameras.Count, labels.Count);
+            var selectedCamera = _cameraSelector.SelectedIndex >= 0 && _cameraSelector.SelectedIndex < _displayedCameras.Count
+                ? _displayedCameras[_cameraSelector.SelectedIndex].Camera
+                : null;
+            var resetStatus = ApplyStartupCameraReset(allCameras, selectedCamera);
+            UpdatePresetLabels();
+            var capabilityStatus = UpdateSelectedCameraCapabilities();
+            if (IsRedundantHomeStartupWarning(resetStatus, capabilityStatus))
+                resetStatus = string.Empty;
+
             _statusText.Text = string.IsNullOrWhiteSpace(resetStatus)
                 ? startupStatus
                 : $"{startupStatus} {resetStatus}";
-            UpdatePresetLabels();
+            if (!string.IsNullOrWhiteSpace(capabilityStatus))
+                _statusText.Text = $"{_statusText.Text} {capabilityStatus}";
         }
         catch (Exception ex)
         {
             SetError("Refresh cameras failed", ex);
+            ApplyCameraCapabilities(null);
         }
     }
 
@@ -276,6 +382,124 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private string UpdateSelectedCameraCapabilities()
+    {
+        if (!TryGetSelectedCamera(out var camera))
+        {
+            ApplyCameraCapabilities(null);
+            return string.Empty;
+        }
+
+        var capabilities = ProbeCameraCapabilities(GetCameraKey(camera));
+        ApplyCameraCapabilities(capabilities);
+        return BuildCapabilityWarning(capabilities);
+    }
+
+    private CameraCapabilities ProbeCameraCapabilities(string camera)
+    {
+        var zoom = ProbeCameraProperty(camera, CameraProperty.Zoom);
+        var pan = ProbeCameraProperty(camera, CameraProperty.Pan);
+        var tilt = ProbeCameraProperty(camera, CameraProperty.Tilt);
+        return new CameraCapabilities(
+            zoom.Supported,
+            pan.Supported,
+            tilt.Supported,
+            _startupHomeResults.TryGetValue(camera, out var startupHomeResult) ? startupHomeResult : null,
+            zoom.Error,
+            pan.Error,
+            tilt.Error);
+    }
+
+    private (bool Supported, string? Error) ProbeCameraProperty(string camera, CameraProperty property)
+    {
+        try
+        {
+            _backend.GetRange(camera, property);
+            _backend.GetValue(camera, property);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    private void ApplyCameraCapabilities(CameraCapabilities? capabilities)
+    {
+        var hasCamera = capabilities is not null;
+        var zoom = capabilities?.Zoom == true;
+        var pan = capabilities?.Pan == true;
+        var tilt = capabilities?.Tilt == true;
+        var presets = capabilities?.Presets == true;
+        var home = capabilities?.Home == true;
+        var driverDefault = capabilities?.DriverDefault == true;
+
+        foreach (var button in _presetButtons)
+            button.IsEnabled = presets;
+
+        _memoryButton.IsEnabled = presets;
+        _homeButton.IsEnabled = home;
+        _defaultAllButton.IsEnabled = driverDefault;
+        _panLeftButton.IsEnabled = pan;
+        _panRightButton.IsEnabled = pan;
+        _tiltUpButton.IsEnabled = tilt;
+        _tiltDownButton.IsEnabled = tilt;
+        _zoomInButton.IsEnabled = zoom;
+        _zoomOutButton.IsEnabled = zoom;
+        _stepSlider.IsEnabled = hasCamera && (zoom || pan || tilt);
+    }
+
+    private static string BuildCapabilityWarning(CameraCapabilities capabilities)
+    {
+        var allCapabilities = new[]
+        {
+            ("presets", capabilities.Presets),
+            ("pan", capabilities.Pan),
+            ("tilt", capabilities.Tilt),
+            ("zoom", capabilities.Zoom),
+            ("home", capabilities.Home),
+            ("driver default", capabilities.DriverDefault)
+        };
+
+        var available = allCapabilities
+            .Where(capability => capability.Item2)
+            .Select(capability => capability.Item1)
+            .ToList();
+        var unavailable = allCapabilities
+            .Where(capability => !capability.Item2)
+            .Select(capability => capability.Item1)
+            .ToList();
+
+        if (available.Count == 0)
+            return "Capabilities: none.";
+
+        if (unavailable.Count == 0)
+            return "Capabilities: all.";
+
+        if (unavailable.Count <= 2)
+            return $"Capabilities: all except {string.Join(", ", unavailable)}.";
+
+        return $"Capabilities: {string.Join(", ", available)}.";
+    }
+
+    private static bool IsRedundantHomeStartupWarning(string resetStatus, string capabilityStatus) =>
+        resetStatus.StartsWith("Restore home position of selected camera failed", StringComparison.Ordinal) &&
+        CapabilityStatusReportsMissingHome(capabilityStatus);
+
+    private static bool CapabilityStatusReportsMissingHome(string capabilityStatus)
+    {
+        if (!capabilityStatus.StartsWith("Capabilities:", StringComparison.Ordinal))
+            return false;
+
+        if (capabilityStatus.Equals("Capabilities: none.", StringComparison.Ordinal))
+            return true;
+
+        if (capabilityStatus.StartsWith("Capabilities: all except ", StringComparison.Ordinal))
+            return capabilityStatus.Contains("home", StringComparison.Ordinal);
+
+        return !capabilityStatus.Contains("home", StringComparison.Ordinal);
+    }
+
     private void ChangeZoom(string camera, int deltaPercent)
     {
         var raw = AddPercentDelta(camera, CameraProperty.Zoom, deltaPercent);
@@ -307,6 +531,16 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private bool IsActionAvailable(Button button, string unavailableMessage)
+    {
+        if (button.IsEnabled)
+            return true;
+
+        CancelMemoryModeForOtherAction();
+        _statusText.Text = unavailableMessage;
+        return false;
+    }
+
     private bool TryGetSelectedCamera(out CameraInfo camera)
     {
         if (_cameraSelector.SelectedItem is string label && _cameraByLabel.TryGetValue(label, out camera!))
@@ -321,7 +555,7 @@ public sealed partial class MainWindow : Window
 
     private void UpdatePresetLabels()
     {
-        var slotIndex = _cameraSelector.SelectedIndex;
+        var slotIndex = GetSelectedCameraSlotIndex();
         for (var preset = 1; preset <= _presetLabels.Count; preset++)
         {
             var name = slotIndex >= 0 ? ReadPresetName(slotIndex, preset) : null;
@@ -360,14 +594,14 @@ public sealed partial class MainWindow : Window
     {
         _memoryMode = enabled;
         _memoryButton.Background = enabled
-            ? Avalonia.Media.Brush.Parse("#B9782E")
-            : Avalonia.Media.Brush.Parse("#735C2C");
+            ? Brush.Parse("#B9782E")
+            : Brush.Parse("#735C2C");
         _statusBorder.Background = enabled
-            ? Brush.Parse("#FFF0D9")
-            : Brush.Parse("#E8EDF2");
+            ? GetBrushResource("AppMemoryStatusBrush")
+            : GetBrushResource("AppStatusBrush");
         _statusBorder.BorderBrush = enabled
-            ? Brush.Parse("#E0A044")
-            : Brush.Parse("#CED6DF");
+            ? GetBrushResource("AppMemoryStatusBorderBrush")
+            : GetBrushResource("AppStatusBorderBrush");
         _statusText.Text = enabled
             ? "Memory mode: the next preset click saves the current position. Click Memory again or press Esc to cancel."
             : "Memory mode off.";
@@ -396,15 +630,17 @@ public sealed partial class MainWindow : Window
 
         using var optionsKey = Registry.CurrentUser.OpenSubKey(OptionsRegistryPath);
         _noReset = _startupOptions.NoReset ?? Convert.ToInt32(optionsKey?.GetValue(NoResetValueName, 0)) != 0;
+        _showOnlyLogitechCameras = Convert.ToInt32(optionsKey?.GetValue(ShowOnlyLogitechCamerasValueName, 0)) != 0;
         ApplyTheme();
     }
 
     private void LoadSelectedCameraSettings()
     {
-        if (!OperatingSystem.IsWindows() || _cameraSelector.SelectedIndex < 0)
+        var slotIndex = GetSelectedCameraSlotIndex();
+        if (!OperatingSystem.IsWindows() || slotIndex < 0)
             return;
 
-        LoadSelectedCameraSettingsFromRegistry(_cameraSelector.SelectedIndex);
+        LoadSelectedCameraSettingsFromRegistry(slotIndex);
     }
 
     [SupportedOSPlatform("windows")]
@@ -427,21 +663,28 @@ public sealed partial class MainWindow : Window
     [SupportedOSPlatform("windows")]
     private void SaveSettingsToRegistry(int cameraSlotIndex, IReadOnlyList<string> presetNames)
     {
-        var slot = cameraSlotIndex + 1;
         using var key = Registry.CurrentUser.CreateSubKey(SettingsRegistryPath);
-        key?.SetValue(string.Format(InvertPanValueNameFormat, slot), _invertPan ? 1 : 0, RegistryValueKind.DWord);
-        key?.SetValue(string.Format(InvertTiltValueNameFormat, slot), _invertTilt ? 1 : 0, RegistryValueKind.DWord);
         key?.SetValue(ThemeModeValueName, _themeMode, RegistryValueKind.String);
-        for (var preset = 1; preset <= 8; preset++)
+
+        if (cameraSlotIndex >= 0)
         {
-            var valueName = $"Tooltip{preset + cameraSlotIndex * 100}";
-            var value = preset <= presetNames.Count ? presetNames[preset - 1] : string.Empty;
-            key?.SetValue(valueName, value, RegistryValueKind.String);
+            var slot = cameraSlotIndex + 1;
+            key?.SetValue(string.Format(InvertPanValueNameFormat, slot), _invertPan ? 1 : 0, RegistryValueKind.DWord);
+            key?.SetValue(string.Format(InvertTiltValueNameFormat, slot), _invertTilt ? 1 : 0, RegistryValueKind.DWord);
+            for (var preset = 1; preset <= 8; preset++)
+            {
+                var valueName = $"Tooltip{preset + cameraSlotIndex * 100}";
+                var value = preset <= presetNames.Count ? presetNames[preset - 1] : string.Empty;
+                key?.SetValue(valueName, value, RegistryValueKind.String);
+            }
         }
 
         using var deviceKey = Registry.CurrentUser.CreateSubKey(DeviceRegistryPath);
         deviceKey?.SetValue(LogitechControlValueName, _logitechControl ? 1 : 0, RegistryValueKind.DWord);
         deviceKey?.SetValue(MotorIntervalTimerValueName, _motorTime, RegistryValueKind.DWord);
+
+        using var optionsKey = Registry.CurrentUser.CreateSubKey(OptionsRegistryPath);
+        optionsKey?.SetValue(ShowOnlyLogitechCamerasValueName, _showOnlyLogitechCameras ? 1 : 0, RegistryValueKind.DWord);
     }
 
     private void ApplyTheme()
@@ -500,7 +743,18 @@ public sealed partial class MainWindow : Window
         _statusText.Text = $"{context}: {ex.Message}";
     }
 
-    private int SelectStartupCamera(IReadOnlyList<CameraInfo> cameras)
+    private IBrush GetBrushResource(string key)
+    {
+        if (Application.Current?.TryGetResource(key, ActualThemeVariant, out var resource) == true &&
+            resource is IBrush brush)
+        {
+            return brush;
+        }
+
+        return Brush.Parse("#E8EDF2");
+    }
+
+    private int SelectStartupCamera(IReadOnlyList<CameraListItem> cameras)
     {
         if (cameras.Count == 0)
         {
@@ -510,10 +764,12 @@ public sealed partial class MainWindow : Window
 
         if (_startupOptions.Slot is not null)
         {
-            if (_startupOptions.Slot.Value >= 1 && _startupOptions.Slot.Value <= cameras.Count)
+            var index = Enumerable.Range(0, cameras.Count)
+                .FirstOrDefault(index => cameras[index].Slot == _startupOptions.Slot.Value, -1);
+            if (index >= 0)
             {
                 _startupSelectionWarning = null;
-                return _startupOptions.Slot.Value - 1;
+                return index;
             }
 
             _startupSelectionWarning = $"Startup slot {_startupOptions.Slot.Value} is not available. Using first camera.";
@@ -524,7 +780,7 @@ public sealed partial class MainWindow : Window
         {
             for (var index = 0; index < cameras.Count; index++)
             {
-                if (cameras[index].Name.Contains(_startupOptions.DeviceNamePart, StringComparison.OrdinalIgnoreCase))
+                if (cameras[index].Camera.Name.Contains(_startupOptions.DeviceNamePart, StringComparison.OrdinalIgnoreCase))
                 {
                     _startupSelectionWarning = null;
                     return index;
@@ -539,12 +795,17 @@ public sealed partial class MainWindow : Window
         return 0;
     }
 
-    private string BuildStartupStatus(int cameraCount)
+    private string BuildStartupStatus(int detectedCameraCount, int displayedCameraCount)
     {
-        if (cameraCount == 0)
+        if (detectedCameraCount == 0)
             return "No cameras found. Connect a camera and click Refresh.";
 
-        var status = $"Found {cameraCount} camera(s).";
+        if (displayedCameraCount == 0)
+            return "No cameras match the current camera filter. Change Settings or click Refresh.";
+
+        var status = _showOnlyLogitechCameras
+            ? $"Found {displayedCameraCount} Logitech camera(s) out of {detectedCameraCount} detected camera(s)."
+            : $"Found {displayedCameraCount} camera(s).";
         if (!string.IsNullOrWhiteSpace(_startupSelectionWarning))
             status += $" {_startupSelectionWarning}";
         if (_noReset)
@@ -552,7 +813,7 @@ public sealed partial class MainWindow : Window
         return status;
     }
 
-    private string ApplyStartupCameraReset(IReadOnlyList<CameraInfo> cameras)
+    private string ApplyStartupCameraReset(IReadOnlyList<CameraInfo> cameras, CameraInfo? selectedCamera)
     {
         if (_startupActionsApplied || cameras.Count == 0)
             return string.Empty;
@@ -561,23 +822,23 @@ public sealed partial class MainWindow : Window
         if (_noReset)
             return "Startup home reset skipped.";
 
-        var selectedIndex = _cameraSelector.SelectedIndex;
-        if (selectedIndex < 0 || selectedIndex >= cameras.Count)
-            return string.Empty;
-
+        var selectedCameraKey = selectedCamera is null ? null : GetCameraKey(selectedCamera);
         string? selectedCameraError = null;
         for (var index = cameras.Count - 1; index >= 0; index--)
         {
             try
             {
                 _backend.RestoreHome(GetCameraKey(cameras[index]), zoom: false, move: true);
+                _startupHomeResults[GetCameraKey(cameras[index])] = true;
             }
-            catch (Exception ex) when (index == selectedIndex)
+            catch (Exception ex) when (selectedCameraKey == GetCameraKey(cameras[index]))
             {
+                _startupHomeResults[GetCameraKey(cameras[index])] = false;
                 selectedCameraError = ex.Message;
             }
             catch
             {
+                _startupHomeResults[GetCameraKey(cameras[index])] = false;
                 // Ignore non-selected camera startup reset failures to avoid noisy warnings.
             }
         }
@@ -675,15 +936,34 @@ public sealed partial class MainWindow : Window
 
     private void SelectCameraSlot(int slot)
     {
-        if (slot >= 1 && slot <= _cameraByLabel.Count)
+        for (var index = 0; index < _displayedCameras.Count; index++)
         {
-            _cameraSelector.SelectedIndex = slot - 1;
-            _statusText.Text = $"Selected camera slot {slot}.";
-            return;
+            if (_displayedCameras[index].Slot == slot)
+            {
+                _cameraSelector.SelectedIndex = index;
+                _statusText.Text = $"Selected camera slot {slot}.";
+                return;
+            }
         }
 
         _statusText.Text = $"Camera slot {slot} is not available.";
     }
+
+    private int GetSelectedCameraSlotIndex()
+    {
+        var selectedIndex = _cameraSelector.SelectedIndex;
+        if (selectedIndex < 0 || selectedIndex >= _displayedCameras.Count)
+            return -1;
+
+        return _displayedCameras[selectedIndex].Slot - 1;
+    }
+
+    private bool ShouldShowCamera(CameraInfo camera) =>
+        !_showOnlyLogitechCameras || IsLogitechCamera(camera);
+
+    private static bool IsLogitechCamera(CameraInfo camera) =>
+        OperatingSystem.IsWindows() &&
+        camera.MonikerString?.Contains("vid_046d", StringComparison.OrdinalIgnoreCase) == true;
 
     private bool TryBeginHotkey(Key key)
     {

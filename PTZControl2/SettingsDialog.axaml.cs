@@ -12,6 +12,8 @@ public sealed partial class SettingsDialog : Window
     private CheckBox _invertPanCheckBox = null!;
     private CheckBox _invertTiltCheckBox = null!;
     private CheckBox _logitechControlCheckBox = null!;
+    private CheckBox _showOnlyLogitechCamerasCheckBox = null!;
+    private TabItem _cameraFilterTab = null!;
     private TextBlock _cameraLabelTextBlock = null!;
     private TextBox _motorTimeTextBox = null!;
     private readonly List<TextBox> _presetNameTextBoxes = new();
@@ -39,6 +41,18 @@ public sealed partial class SettingsDialog : Window
     {
         get => _logitechControlCheckBox.IsChecked == true;
         set => _logitechControlCheckBox.IsChecked = value;
+    }
+
+    public bool ShowCameraFilterOptions
+    {
+        get => _cameraFilterTab.IsVisible;
+        set => _cameraFilterTab.IsVisible = value;
+    }
+
+    public bool ShowOnlyLogitechCameras
+    {
+        get => _showOnlyLogitechCamerasCheckBox.IsChecked == true;
+        set => _showOnlyLogitechCamerasCheckBox.IsChecked = value;
     }
 
     public int MotorTime
@@ -84,6 +98,10 @@ public sealed partial class SettingsDialog : Window
             ?? throw new InvalidOperationException("InvertTiltCheckBox control not found.");
         _logitechControlCheckBox = this.FindControl<CheckBox>("LogitechControlCheckBox")
             ?? throw new InvalidOperationException("LogitechControlCheckBox control not found.");
+        _showOnlyLogitechCamerasCheckBox = this.FindControl<CheckBox>("ShowOnlyLogitechCamerasCheckBox")
+            ?? throw new InvalidOperationException("ShowOnlyLogitechCamerasCheckBox control not found.");
+        _cameraFilterTab = this.FindControl<TabItem>("CameraFilterTab")
+            ?? throw new InvalidOperationException("CameraFilterTab control not found.");
         _motorTimeTextBox = this.FindControl<TextBox>("MotorTimeTextBox")
             ?? throw new InvalidOperationException("MotorTimeTextBox control not found.");
         _themeModeComboBox = this.FindControl<ComboBox>("ThemeModeComboBox")

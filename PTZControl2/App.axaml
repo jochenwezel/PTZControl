@@ -1,6 +1,34 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="PTZControl2.App">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F4F6F8" />
+          <SolidColorBrush x:Key="AppPanelBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AppBorderBrush" Color="#D8DEE6" />
+          <SolidColorBrush x:Key="AppTextBrush" Color="#16202A" />
+          <SolidColorBrush x:Key="AppMutedTextBrush" Color="#607080" />
+          <SolidColorBrush x:Key="AppStatusBrush" Color="#E8EDF2" />
+          <SolidColorBrush x:Key="AppStatusBorderBrush" Color="#CED6DF" />
+          <SolidColorBrush x:Key="AppMemoryStatusBrush" Color="#FFF0D9" />
+          <SolidColorBrush x:Key="AppMemoryStatusBorderBrush" Color="#E0A044" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#171B20" />
+          <SolidColorBrush x:Key="AppPanelBrush" Color="#20262D" />
+          <SolidColorBrush x:Key="AppBorderBrush" Color="#3A4450" />
+          <SolidColorBrush x:Key="AppTextBrush" Color="#EEF3F8" />
+          <SolidColorBrush x:Key="AppMutedTextBrush" Color="#A9B6C3" />
+          <SolidColorBrush x:Key="AppStatusBrush" Color="#222B34" />
+          <SolidColorBrush x:Key="AppStatusBorderBrush" Color="#3A4652" />
+          <SolidColorBrush x:Key="AppMemoryStatusBrush" Color="#3A2A12" />
+          <SolidColorBrush x:Key="AppMemoryStatusBorderBrush" Color="#B9782E" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
   <Application.Styles>
     <FluentTheme />
   </Application.Styles>

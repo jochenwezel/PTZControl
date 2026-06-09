@@ -19,7 +19,7 @@
       <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
     <Style Selector="TextBlock.hint">
-      <Setter Property="Foreground" Value="#607080" />
+      <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style Selector="Button.dialogAction">

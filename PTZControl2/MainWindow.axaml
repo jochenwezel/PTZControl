@@ -6,14 +6,14 @@
         Height="580"
         MinWidth="980"
         MinHeight="580"
-        Background="#F4F6F8"
+        Background="{DynamicResource AppBackgroundBrush}"
         WindowStartupLocation="CenterScreen"
         KeyDown="Window_KeyDown"
         KeyUp="Window_KeyUp">
   <Window.Styles>
     <Style Selector="Border.panel">
-      <Setter Property="Background" Value="#FFFFFF" />
-      <Setter Property="BorderBrush" Value="#D8DEE6" />
+      <Setter Property="Background" Value="{DynamicResource AppPanelBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="8" />
       <Setter Property="Padding" Value="16" />
@@ -52,7 +52,7 @@
     <Style Selector="TextBlock.sectionTitle">
       <Setter Property="FontSize" Value="18" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#16202A" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
     </Style>
     <Style Selector="TextBlock.icon">
       <Setter Property="FontSize" Value="21" />
@@ -67,7 +67,7 @@
     </Style>
     <Style Selector="TextBlock.miniLabel">
       <Setter Property="FontSize" Value="12" />
-      <Setter Property="Foreground" Value="#607080" />
+      <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}" />
     </Style>
   </Window.Styles>
 
@@ -77,7 +77,7 @@
         <TextBlock Text="Camera"
                    VerticalAlignment="Center"
                    FontWeight="SemiBold"
-                   Foreground="#16202A" />
+                   Foreground="{DynamicResource AppTextBrush}" />
         <ComboBox x:Name="CameraSelector"
                   Grid.Column="1"
                   MinWidth="320"
@@ -101,67 +101,67 @@
             <TextBlock Text="Presets" Classes="sectionTitle" />
             <TextBlock Grid.Column="1"
                        Text="Restore saved camera positions"
-                       Foreground="#607080"
+                       Foreground="{DynamicResource AppMutedTextBrush}"
                        FontSize="12"
                        VerticalAlignment="Center" />
           </Grid>
 
           <UniformGrid Grid.Row="1" Columns="4" Rows="3">
-            <Button Classes="preset" Tag="1" Click="PresetButton_Click" ToolTip.Tip="Restore preset 1. In memory mode, save the current position to preset 1.">
+            <Button x:Name="Preset1Button" Classes="preset" Tag="1" Click="PresetButton_Click" ToolTip.Tip="Restore preset 1. In memory mode, save the current position to preset 1.">
               <StackPanel Spacing="4">
                 <TextBlock Text="1" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="Preset1Text" Text="Preset 1" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button Classes="preset" Tag="2" Click="PresetButton_Click" ToolTip.Tip="Restore preset 2. In memory mode, save the current position to preset 2.">
+            <Button x:Name="Preset2Button" Classes="preset" Tag="2" Click="PresetButton_Click" ToolTip.Tip="Restore preset 2. In memory mode, save the current position to preset 2.">
               <StackPanel Spacing="4">
                 <TextBlock Text="2" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="Preset2Text" Text="Preset 2" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button Classes="preset" Tag="3" Click="PresetButton_Click" ToolTip.Tip="Restore preset 3. In memory mode, save the current position to preset 3.">
+            <Button x:Name="Preset3Button" Classes="preset" Tag="3" Click="PresetButton_Click" ToolTip.Tip="Restore preset 3. In memory mode, save the current position to preset 3.">
               <StackPanel Spacing="4">
                 <TextBlock Text="3" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="Preset3Text" Text="Preset 3" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button Classes="preset" Tag="4" Click="PresetButton_Click" ToolTip.Tip="Restore preset 4. In memory mode, save the current position to preset 4.">
+            <Button x:Name="Preset4Button" Classes="preset" Tag="4" Click="PresetButton_Click" ToolTip.Tip="Restore preset 4. In memory mode, save the current position to preset 4.">
               <StackPanel Spacing="4">
                 <TextBlock Text="4" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="Preset4Text" Text="Preset 4" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button Classes="preset" Tag="5" Click="PresetButton_Click" ToolTip.Tip="Restore preset 5. In memory mode, save the current position to preset 5.">
+            <Button x:Name="Preset5Button" Classes="preset" Tag="5" Click="PresetButton_Click" ToolTip.Tip="Restore preset 5. In memory mode, save the current position to preset 5.">
               <StackPanel Spacing="4">
                 <TextBlock Text="5" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="Preset5Text" Text="Preset 5" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button Classes="preset" Tag="6" Click="PresetButton_Click" ToolTip.Tip="Restore preset 6. In memory mode, save the current position to preset 6.">
+            <Button x:Name="Preset6Button" Classes="preset" Tag="6" Click="PresetButton_Click" ToolTip.Tip="Restore preset 6. In memory mode, save the current position to preset 6.">
               <StackPanel Spacing="4">
                 <TextBlock Text="6" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="Preset6Text" Text="Preset 6" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button Classes="preset" Tag="7" Click="PresetButton_Click" ToolTip.Tip="Restore preset 7. In memory mode, save the current position to preset 7.">
+            <Button x:Name="Preset7Button" Classes="preset" Tag="7" Click="PresetButton_Click" ToolTip.Tip="Restore preset 7. In memory mode, save the current position to preset 7.">
               <StackPanel Spacing="4">
                 <TextBlock Text="7" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="Preset7Text" Text="Preset 7" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button Classes="preset" Tag="8" Click="PresetButton_Click" ToolTip.Tip="Restore preset 8. In memory mode, save the current position to preset 8.">
+            <Button x:Name="Preset8Button" Classes="preset" Tag="8" Click="PresetButton_Click" ToolTip.Tip="Restore preset 8. In memory mode, save the current position to preset 8.">
               <StackPanel Spacing="4">
                 <TextBlock Text="8" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="Preset8Text" Text="Preset 8" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button Classes="preset" Background="#2E7D66" Click="HomeButton_Click" ToolTip.Tip="Restore the camera home position.">
+            <Button x:Name="HomeButton" Classes="preset" Background="#2E7D66" Click="HomeButton_Click" ToolTip.Tip="Restore the camera home position.">
               <StackPanel Spacing="4">
                 <TextBlock Text="⌂" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock Text="Home" TextWrapping="Wrap" FontSize="13" />
               </StackPanel>
             </Button>
-            <Button Classes="preset" Background="#4B647C" Click="DefaultAllButton_Click" ToolTip.Tip="Restore driver default values for zoom, pan, and tilt.">
+            <Button x:Name="DefaultAllButton" Classes="preset" Background="#4B647C" Click="DefaultAllButton_Click" ToolTip.Tip="Restore driver default values for zoom, pan, and tilt.">
               <StackPanel Spacing="4">
                 <TextBlock Text="↺" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock Text="Default" TextWrapping="Wrap" FontSize="13" />
@@ -188,37 +188,37 @@
           <TextBlock Text="Live control" Classes="sectionTitle" HorizontalAlignment="Center" />
 
           <Grid ColumnDefinitions="76,76,76,28,76" RowDefinitions="76,76,76" ColumnSpacing="8" RowSpacing="8" HorizontalAlignment="Center">
-            <Button Grid.Column="1" Grid.Row="0" Classes="motion" Click="TiltUpButton_Click" ToolTip.Tip="Tilt up by the selected step size.">
+            <Button x:Name="TiltUpButton" Grid.Column="1" Grid.Row="0" Classes="motion" Click="TiltUpButton_Click" ToolTip.Tip="Tilt up by the selected step size.">
               <StackPanel>
                 <TextBlock Text="▲" Classes="icon" />
                 <TextBlock Text="Tilt" Classes="caption" />
               </StackPanel>
             </Button>
-            <Button Grid.Column="0" Grid.Row="1" Classes="motion" Click="PanLeftButton_Click" ToolTip.Tip="Pan left by the selected step size.">
+            <Button x:Name="PanLeftButton" Grid.Column="0" Grid.Row="1" Classes="motion" Click="PanLeftButton_Click" ToolTip.Tip="Pan left by the selected step size.">
               <StackPanel>
                 <TextBlock Text="◀" Classes="icon" />
                 <TextBlock Text="Pan" Classes="caption" />
               </StackPanel>
             </Button>
-            <Button Grid.Column="2" Grid.Row="1" Classes="motion" Click="PanRightButton_Click" ToolTip.Tip="Pan right by the selected step size.">
+            <Button x:Name="PanRightButton" Grid.Column="2" Grid.Row="1" Classes="motion" Click="PanRightButton_Click" ToolTip.Tip="Pan right by the selected step size.">
               <StackPanel>
                 <TextBlock Text="▶" Classes="icon" />
                 <TextBlock Text="Pan" Classes="caption" />
               </StackPanel>
             </Button>
-            <Button Grid.Column="1" Grid.Row="2" Classes="motion" Click="TiltDownButton_Click" ToolTip.Tip="Tilt down by the selected step size.">
+            <Button x:Name="TiltDownButton" Grid.Column="1" Grid.Row="2" Classes="motion" Click="TiltDownButton_Click" ToolTip.Tip="Tilt down by the selected step size.">
               <StackPanel>
                 <TextBlock Text="▼" Classes="icon" />
                 <TextBlock Text="Tilt" Classes="caption" />
               </StackPanel>
             </Button>
-            <Button Grid.Column="4" Grid.Row="0" Classes="zoom" Click="ZoomInButton_Click" ToolTip.Tip="Increase zoom by the selected step size.">
+            <Button x:Name="ZoomInButton" Grid.Column="4" Grid.Row="0" Classes="zoom" Click="ZoomInButton_Click" ToolTip.Tip="Increase zoom by the selected step size.">
               <StackPanel>
                 <TextBlock Text="+" Classes="icon" />
                 <TextBlock Text="Zoom in" Classes="caption" />
               </StackPanel>
             </Button>
-            <Button Grid.Column="4" Grid.Row="2" Classes="zoom" Click="ZoomOutButton_Click" ToolTip.Tip="Decrease zoom by the selected step size.">
+            <Button x:Name="ZoomOutButton" Grid.Column="4" Grid.Row="2" Classes="zoom" Click="ZoomOutButton_Click" ToolTip.Tip="Decrease zoom by the selected step size.">
               <StackPanel>
                 <TextBlock Text="−" Classes="icon" />
                 <TextBlock Text="Zoom out" Classes="caption" />
@@ -233,7 +233,7 @@
                          Grid.Column="1"
                          Text="10"
                          FontWeight="SemiBold"
-                         Foreground="#16202A" />
+                         Foreground="{DynamicResource AppTextBrush}" />
             </Grid>
             <Slider x:Name="StepSlider"
                     Grid.Row="1"
@@ -251,15 +251,15 @@
 
     <Border x:Name="StatusBorder"
             Grid.Row="2"
-            Background="#E8EDF2"
-            BorderBrush="#CED6DF"
+            Background="{DynamicResource AppStatusBrush}"
+            BorderBrush="{DynamicResource AppStatusBorderBrush}"
             BorderThickness="1"
             CornerRadius="8"
             Padding="12,9">
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
         <TextBlock x:Name="StatusText"
                    Text="Ready."
-                   Foreground="#263442"
+                   Foreground="{DynamicResource AppTextBrush}"
                    TextWrapping="Wrap"
                    VerticalAlignment="Center" />
         <Button Grid.Column="1"

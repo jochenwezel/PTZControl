@@ -20,7 +20,7 @@
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style Selector="TextBlock.hint">
-      <Setter Property="Foreground" Value="#607080" />
+      <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style Selector="Button.dialogAction">
@@ -45,7 +45,7 @@
               <TextBlock Text="PTZControl2.exe -device:&quot;NamePart&quot;" Classes="command" />
               <TextBlock Text="Selects a camera by a device-name fragment at startup." Classes="hint" />
               <TextBlock Text="PTZControl2.exe -slot:1..N" Classes="command" Margin="0,8,0,0" />
-              <TextBlock Text="Selects a camera by its current list position at startup. If the slot is unavailable, PTZControl2 falls back to the first camera and shows a warning." Classes="hint" />
+              <TextBlock Text="Selects a camera by its slot number at startup. Slot numbers stay unchanged even when the Windows Logitech camera filter is active. If the slot is unavailable, PTZControl2 falls back to the first visible camera and shows a warning." Classes="hint" />
               <TextBlock Text="PTZControl2.exe -noreset" Classes="command" Margin="0,8,0,0" />
               <TextBlock Text="Skips the startup home reset. Without this option, PTZControl2 restores all detected cameras to Home at startup." Classes="hint" />
             </StackPanel>
@@ -140,9 +140,10 @@
             </StackPanel>
 
             <StackPanel>
-              <TextBlock Text="Appearance and original options" Classes="sectionTitle" />
+              <TextBlock Text="Appearance and compatibility options" Classes="sectionTitle" />
               <TextBlock Text="Appearance can follow the operating system theme or be forced to Light or Dark." Classes="hint" />
               <TextBlock Text="Original PTZControl options such as Logitech peripheral control extension and motor time are available in settings where applicable." Classes="hint" Margin="0,8,0,0" />
+              <TextBlock Text="On Windows, Settings can filter the camera list to Logitech USB devices by vendor ID. Device names and capability probes are not used for this filter." Classes="hint" Margin="0,8,0,0" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>
@@ -154,7 +155,8 @@
             <StackPanel>
               <TextBlock Text="Camera selection" Classes="sectionTitle" />
               <TextBlock Text="The camera list shows detected video devices. PTZControl2 uses the selected item for all live-control, preset, home, default, and settings actions." Classes="hint" />
-              <TextBlock Text="Startup argument -slot:N selects by current list position. Startup argument -device:&quot;NamePart&quot; selects by camera device-name fragment." Classes="hint" Margin="0,8,0,0" />
+              <TextBlock Text="Startup argument -slot:N selects by the shown slot number. Startup argument -device:&quot;NamePart&quot; selects by camera device-name fragment." Classes="hint" Margin="0,8,0,0" />
+              <TextBlock Text="If the Windows Logitech camera filter is active, hidden devices do not change the slot numbers of visible devices." Classes="hint" Margin="0,8,0,0" />
             </StackPanel>
 
             <StackPanel>

@@ -2,9 +2,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PTZControl2.SettingsDialog"
         Title="PTZControl2 Settings"
-        Width="560"
+        Width="700"
         Height="520"
-        MinWidth="520"
+        MinWidth="700"
         MinHeight="380"
         WindowStartupLocation="CenterOwner"
         KeyDown="Window_KeyDown">
@@ -15,7 +15,7 @@
     </Style>
     <Style Selector="TextBlock.hint">
       <Setter Property="FontSize" Value="12" />
-      <Setter Property="Foreground" Value="#607080" />
+      <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style Selector="Button.dialogAction">
@@ -42,7 +42,7 @@
 
       <TabItem Header="Presets">
         <ScrollViewer Margin="4,16">
-          <StackPanel Spacing="10">
+          <StackPanel Spacing="10" Margin="0,0,18,0">
             <TextBlock Text="Preset names" Classes="sectionTitle" />
             <TextBlock Classes="hint"
                        Text="These names are stored in the same registry values as the original PTZControl tooltip texts for the selected camera slot." />
@@ -68,9 +68,9 @@
         </ScrollViewer>
       </TabItem>
 
-      <TabItem Header="Original">
+      <TabItem Header="Compatibility">
         <StackPanel Margin="4,16" Spacing="14">
-          <TextBlock Text="Original PTZControl options" Classes="sectionTitle" />
+          <TextBlock Text="Compatibility options" Classes="sectionTitle" />
           <CheckBox x:Name="LogitechControlCheckBox"
                     Content="Use Logitech peripheral control extension" />
           <Grid ColumnDefinitions="Auto,120,Auto" ColumnSpacing="10">
@@ -100,6 +100,16 @@
           </ComboBox>
           <TextBlock Classes="hint"
                      Text="System follows the operating system theme. Light and Dark override it for PTZControl2." />
+        </StackPanel>
+      </TabItem>
+
+      <TabItem x:Name="CameraFilterTab" Header="Cameras">
+        <StackPanel Margin="4,16" Spacing="12">
+          <TextBlock Text="Camera list" Classes="sectionTitle" />
+          <CheckBox x:Name="ShowOnlyLogitechCamerasCheckBox"
+                    Content="Show only Logitech USB cameras" />
+          <TextBlock Classes="hint"
+                     Text="This Windows-only filter uses the USB vendor ID in the device path. Slot numbers stay unchanged." />
         </StackPanel>
       </TabItem>
     </TabControl>
