@@ -21,3 +21,8 @@
   "IAMCameraControl (UVC) is not supported", re-run the same command outside the
   sandbox before treating it as a real device limitation.
 - Always create GitHub issues in English.
+
+## Branch cleanup
+
+- After a pull request has been merged and all required pipelines have completed successfully, delete its feature branch both locally and on the remote. If either branch has already been deleted, clean up the remaining branch.
+- Do not delete branches for open pull requests or branches whose required pipelines are still running or have failed.
