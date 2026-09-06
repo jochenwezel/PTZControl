@@ -153,7 +153,7 @@
                        VerticalAlignment="Center" />
           </Grid>
           <TextBlock Classes="hint"
-                     Text="These values are compatible with the original PTZControl settings." />
+                     Text="Motor time uses the original PTZControl range 10..1000 msec. Default is 70 msec." />
         </StackPanel>
       </TabItem>
 

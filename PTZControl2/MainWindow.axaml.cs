@@ -1142,6 +1142,8 @@ public sealed partial class MainWindow : Window
 
     private int StepPercent => Math.Max(1, (int)Math.Round(_stepSlider.Value));
 
+    private static int NormalizeMotorTime(int value) => value <= 0 ? 70 : Math.Clamp(value, 10, 1000);
+
     private int PanDelta(int delta) => _invertPan ? -delta : delta;
 
     private int TiltDelta(int delta) => _invertTilt ? -delta : delta;
@@ -1206,8 +1208,7 @@ public sealed partial class MainWindow : Window
         _invertTilt = Convert.ToInt32(key?.GetValue(string.Format(InvertTiltValueNameFormat, slot), 0)) != 0;
         _logitechControl = Convert.ToInt32(key?.GetValue(string.Format(LogitechControlValueNameFormat, slot), 0)) != 0;
         _motorTime = Convert.ToInt32(key?.GetValue(string.Format(MotorIntervalTimerValueNameFormat, slot), 70));
-        if (_motorTime <= 0)
-            _motorTime = 70;
+        _motorTime = NormalizeMotorTime(_motorTime);
     }
 
     private void SaveSettings(int cameraSlotIndex, IReadOnlyList<string> presetNames)
@@ -1230,7 +1231,7 @@ public sealed partial class MainWindow : Window
             key?.SetValue(string.Format(InvertPanValueNameFormat, slot), _invertPan ? 1 : 0, RegistryValueKind.DWord);
             key?.SetValue(string.Format(InvertTiltValueNameFormat, slot), _invertTilt ? 1 : 0, RegistryValueKind.DWord);
             key?.SetValue(string.Format(LogitechControlValueNameFormat, slot), _logitechControl ? 1 : 0, RegistryValueKind.DWord);
-            key?.SetValue(string.Format(MotorIntervalTimerValueNameFormat, slot), _motorTime > 0 ? _motorTime : 70, RegistryValueKind.DWord);
+            key?.SetValue(string.Format(MotorIntervalTimerValueNameFormat, slot), NormalizeMotorTime(_motorTime), RegistryValueKind.DWord);
             for (var preset = 1; preset <= 8; preset++)
             {
                 var valueName = $"Tooltip{preset + cameraSlotIndex * 100}";

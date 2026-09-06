@@ -97,8 +97,8 @@ public sealed partial class SettingsDialog : Window
 
     public int MotorTime
     {
-        get => int.TryParse(_motorTimeTextBox.Text, out var value) && value > 0 ? value : 70;
-        set => _motorTimeTextBox.Text = (value > 0 ? value : 70).ToString();
+        get => int.TryParse(_motorTimeTextBox.Text, out var value) ? NormalizeMotorTime(value) : 70;
+        set => _motorTimeTextBox.Text = NormalizeMotorTime(value).ToString();
     }
 
     public string ThemeMode
@@ -170,6 +170,8 @@ public sealed partial class SettingsDialog : Window
     private void CancelButton_Click(object? sender, RoutedEventArgs e) => Close(false);
 
     private void SaveButton_Click(object? sender, RoutedEventArgs e) => Close(true);
+
+    private static int NormalizeMotorTime(int value) => value <= 0 ? 70 : Math.Clamp(value, 10, 1000);
 
     private void Window_KeyDown(object? sender, KeyEventArgs e)
     {
