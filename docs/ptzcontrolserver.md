@@ -1,0 +1,151 @@
+# PTZControlServer HTTP API
+
+`PTZControlServer` exposes camera discovery and PTZ actions over HTTP. It is
+designed for Bitfocus Companion's Generic HTTP Requests module, Stream Deck
+integrations, scripts, browser bookmarks, and other automation clients.
+
+The server runs on Windows and Linux and uses the same camera backend as
+`PTZControlConsole`. Camera and preset support still depends on the operating
+system, driver, and camera model.
+
+## Start the server
+
+Start with the secure local-only defaults:
+
+```powershell
+PTZControlServer.exe
+```
+
+The defaults listen on both IPv4 and IPv6 localhost:
+
+```text
+http://127.0.0.1:7070
+http://[::1]:7070
+```
+
+Open `http://127.0.0.1:7070/swagger` for the interactive Swagger UI. The
+OpenAPI document is available at
+`http://127.0.0.1:7070/swagger/v1/swagger.json`.
+
+To accept requests from a LAN, bind all interfaces and limit access with an IP
+allowlist and token:
+
+```powershell
+PTZControlServer.exe `
+  --listen http://0.0.0.0:7070 `
+  --listen http://[::]:7070 `
+  --allow-ip 192.168.1.* `
+  --allow-ip 2001:db8:1234::/48 `
+  --token "replace-with-a-long-random-secret"
+```
+
+Quote wildcard rules on Linux so the shell does not expand `*`:
+
+```bash
+./PTZControlServer --listen http://0.0.0.0:7070 \
+  --allow-ip '192.168.1.*' --token 'replace-with-a-long-random-secret'
+```
+
+Multiple `--listen` and `--allow-ip` options are supported. Allowlist entries
+may be exact IPv4/IPv6 addresses, trailing IPv4 wildcards such as
+`192.168.1.*`, or CIDR networks such as `192.168.1.0/24` and
+`2001:db8::/32`. If no allowlist is configured, every client able to reach a
+configured listen address is accepted.
+
+When `--token` is used, send this header with every `/api` and `/action`
+request:
+
+```text
+X-PTZControl-Token: replace-with-a-long-random-secret
+```
+
+Swagger and `/health` remain readable so the service can be diagnosed. Use
+`--no-swagger` to disable both Swagger UI and the OpenAPI document.
+
+## Information endpoints
+
+```text
+GET /health
+GET /api/devices
+GET /api/camera/2/info
+GET /api/camera/info?slot=2
+```
+
+`/api/devices` returns the slot, device name, camera friendly name, and device
+path needed for Companion dropdowns and configuration. Camera information
+also returns zoom, pan, and tilt ranges/current values plus preset names.
+
+## REST-style action endpoints
+
+The action endpoints accept both `POST` and `PUT`. Parameters are query-string
+values so they can be entered directly in Companion's Generic HTTP Requests
+configuration.
+
+```text
+POST|PUT /api/camera/2/zoom-absolute?mode=percent&value=50
+POST|PUT /api/camera/2/zoom-relative?mode=raw&value=1
+POST|PUT /api/camera/2/move-absolute?mode=percent&pan=50&tilt=50
+POST|PUT /api/camera/2/move-relative?mode=raw&pan=-10&tilt=5
+POST|PUT /api/camera/2/restore-preset/1
+POST|PUT /api/camera/2/save-preset/1
+POST|PUT /api/camera/2/restore-home?target=move
+POST|PUT /api/camera/2/restore-default?target=all
+```
+
+Modes are `percent` and `raw`. Absolute percent values use `0..100`; relative
+percent values use `-100..100`. Raw limits are camera-specific and can be read
+from the camera information endpoint.
+
+Home targets are `zoom`, `move`, and `all`. Driver-default targets are `zoom`,
+`move`, `move-x`, `move-y`, and `all`. Preset numbers are `1..8`.
+
+## Simple GET action URLs
+
+These convenience endpoints are useful for browser bookmarks and clients that
+can only invoke a URL. A successful request changes camera state, so do not use
+them for monitoring or automatic link previews. Responses include
+`Cache-Control: no-store`.
+
+```text
+GET /action/zoom-absolute?slot=2&mode=percent&value=50
+GET /action/zoom-relative?slot=2&mode=raw&value=1
+GET /action/move-absolute?slot=2&mode=percent&pan=50&tilt=50
+GET /action/move-relative?slot=2&mode=raw&pan=-10&tilt=5
+GET /action/restore-preset?slot=2&preset=1
+GET /action/save-preset?slot=2&preset=1
+GET /action/restore-home?slot=2&target=move
+GET /action/restore-default?slot=2&target=all
+```
+
+## Bitfocus Companion
+
+In Generic HTTP Requests, configure the PTZControlServer computer as the host
+and create a request action with one of the REST-style URLs above. Select
+`POST` or `PUT`. If token authentication is enabled, add the
+`X-PTZControl-Token` request header.
+
+Example preset button:
+
+```text
+Method: POST
+URL: http://192.168.1.20:7070/api/camera/2/restore-preset/1
+Header: X-PTZControl-Token: replace-with-a-long-random-secret
+```
+
+Use the Swagger UI from a browser on the Companion computer to verify network,
+allowlist, token, and camera behavior before configuring all buttons.
+
+## Command-line options
+
+```text
+--listen URL       Bind an HTTP address; repeat for multiple addresses.
+--allow-ip RULE    Allow an exact IP, IPv4 wildcard, or CIDR network; repeatable.
+--token SECRET     Require the X-PTZControl-Token header.
+--no-swagger       Disable Swagger UI and OpenAPI JSON.
+-h, --help, -?     Display server help.
+```
+
+On Windows, allow inbound TCP port 7070 in Windows Firewall only for the
+network profiles and remote addresses that should reach the server. On Linux,
+the framework-dependent package requires the .NET 8 runtime or a newer .NET
+runtime with major-version roll-forward support.

@@ -32,10 +32,19 @@ required. See [PTZControl2 GUI](docs/ptzcontrol2.md) for details.
 PTZControl2 is currently promoted as a Windows application. Linux/macOS GUI
 behavior is not part of the supported release scope yet.
 
+## Purpose of the HTTP server
+
+`PTZControlServer` exposes the shared camera backend through an HTTP API for
+Bitfocus Companion Generic HTTP Requests, Stream Deck integrations, scripts,
+and other network automation. It supports GET, POST, and PUT requests, Swagger
+UI/OpenAPI documentation, IPv4/IPv6 binding, IP allowlists, and optional token
+authentication. Windows and experimental Linux release packages are provided.
+
 Important additions in this fork include:
 
 - A .NET-based `PTZControlConsole` command-line application.
 - A modern Windows-only `PTZControl2` GUI application.
+- A cross-platform `PTZControlServer` HTTP API for network automation.
 - Cross-platform console support for Windows and experimental Linux builds, with
   macOS support planned for the same backend architecture.
 - Modern CLI verbs for device discovery, camera information, zoom, pan/tilt,
@@ -69,6 +78,7 @@ packaging, and cross-platform metadata work. See [LICENSE](LICENSE) and
 - [Generated CLI help](docs/generated/cli-help.md)
 - [Generated example output](docs/generated/example-output.md)
 - [PTZControl2 GUI](docs/ptzcontrol2.md)
+- [PTZControlServer HTTP API](docs/ptzcontrolserver.md)
 - [Stream Deck guide](docs/streamdeck.md)
 - [Bitfocus Companion guide](docs/bitfocus-companion.md)
 - [Linux installation](install-linux.md)
