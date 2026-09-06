@@ -31,6 +31,9 @@ jobs:
     - name: Publish PTZControl2 (x64)
       run: dotnet publish PTZControl2/PTZControl2.csproj -c Release -r win-x64 --self-contained false -o ${{ github.workspace }}\ptzcontrol2-win-x64
 
+    - name: Publish PTZControlServer (x64)
+      run: dotnet publish PTZControlServer/PTZControlServer.csproj -c Release -r win-x64 --self-contained false -o ${{ github.workspace }}\server-win-x64
+
     - name: Upload PTZControl (x64) as artifact
       uses: actions/upload-artifact@v5
       with:
@@ -48,6 +51,12 @@ jobs:
       with:
         name: PTZControl2-win-x64
         path: ${{ github.workspace }}\ptzcontrol2-win-x64\*
+
+    - name: Upload PTZControlServer (x64) as artifact
+      uses: actions/upload-artifact@v5
+      with:
+        name: PTZControlServer-win-x64
+        path: ${{ github.workspace }}\server-win-x64\*
 
   build-x86:
     runs-on: windows-2025-vs2026
@@ -71,6 +80,9 @@ jobs:
     - name: Publish PTZControl2 (x86)
       run: dotnet publish PTZControl2/PTZControl2.csproj -c Release -r win-x86 --self-contained false -o ${{ github.workspace }}\ptzcontrol2-win-x86
 
+    - name: Publish PTZControlServer (x86)
+      run: dotnet publish PTZControlServer/PTZControlServer.csproj -c Release -r win-x86 --self-contained false -o ${{ github.workspace }}\server-win-x86
+
     - name: Upload PTZControl (x86) as artifact
       uses: actions/upload-artifact@v5
       with:
@@ -89,6 +101,12 @@ jobs:
         name: PTZControl2-win-x86
         path: ${{ github.workspace }}\ptzcontrol2-win-x86\*
 
+    - name: Upload PTZControlServer (x86) as artifact
+      uses: actions/upload-artifact@v5
+      with:
+        name: PTZControlServer-win-x86
+        path: ${{ github.workspace }}\server-win-x86\*
+
   build-linux-x64:
     runs-on: ubuntu-latest
     steps:
@@ -102,11 +120,20 @@ jobs:
     - name: Publish PTZControlConsole (linux-x64 beta)
       run: dotnet publish PTZControlConsole/PTZControlConsole.csproj -c Release -r linux-x64 --self-contained false -o "${{ github.workspace }}/console-linux-x64"
 
+    - name: Publish PTZControlServer (linux-x64 beta)
+      run: dotnet publish PTZControlServer/PTZControlServer.csproj -c Release -r linux-x64 --self-contained false -o "${{ github.workspace }}/server-linux-x64"
+
     - name: Upload PTZControlConsole (linux-x64 beta) as artifact
       uses: actions/upload-artifact@v5
       with:
         name: PTZControlConsole-linux-x64-beta
         path: ${{ github.workspace }}/console-linux-x64/*
+
+    - name: Upload PTZControlServer (linux-x64 beta) as artifact
+      uses: actions/upload-artifact@v5
+      with:
+        name: PTZControlServer-linux-x64-beta
+        path: ${{ github.workspace }}/server-linux-x64/*
 
   create-release:
     needs: [build-x64, build-x86, build-linux-x64]
@@ -162,11 +189,29 @@ jobs:
           name: PTZControl2-win-x86
           path: PTZControl2-${{ env.TAG_NAME }}-win-x86
 
+      - name: Download PTZControlServer x64 artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: PTZControlServer-win-x64
+          path: PTZControlServer-${{ env.TAG_NAME }}-win-x64
+
+      - name: Download PTZControlServer x86 artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: PTZControlServer-win-x86
+          path: PTZControlServer-${{ env.TAG_NAME }}-win-x86
+
       - name: Download console linux x64 beta artifact
         uses: actions/download-artifact@v5
         with:
           name: PTZControlConsole-linux-x64-beta
           path: PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta
+
+      - name: Download PTZControlServer linux x64 beta artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: PTZControlServer-linux-x64-beta
+          path: PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta
 
       - name: Add console helper files
         run: |
@@ -178,6 +223,9 @@ jobs:
           cp scripts/test-console-camera-linux.sh PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta/scripts/
           chmod +x PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta/scripts/test-console-camera-linux.sh
           cp install-linux.md PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta/
+          cp docs/ptzcontrolserver.md PTZControlServer-${{ env.TAG_NAME }}-win-x64/README.md
+          cp docs/ptzcontrolserver.md PTZControlServer-${{ env.TAG_NAME }}-win-x86/README.md
+          cp docs/ptzcontrolserver.md PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta/README.md
   
       - name: Package Files
         run: |
@@ -187,12 +235,15 @@ jobs:
           (cd PTZControlConsole-${{ env.TAG_NAME }}-win-x86 && zip -r ../PTZControlConsole-win-x86.zip .)
           (cd PTZControl2-${{ env.TAG_NAME }}-win-x64 && zip -r ../PTZControl2-win-x64.zip .)
           (cd PTZControl2-${{ env.TAG_NAME }}-win-x86 && zip -r ../PTZControl2-win-x86.zip .)
+          (cd PTZControlServer-${{ env.TAG_NAME }}-win-x64 && zip -r ../PTZControlServer-win-x64.zip .)
+          (cd PTZControlServer-${{ env.TAG_NAME }}-win-x86 && zip -r ../PTZControlServer-win-x86.zip .)
           tar -czf PTZControlConsole-linux-x64-beta.tar.gz PTZControlConsole-${{ env.TAG_NAME }}-linux-x64-beta
+          tar -czf PTZControlServer-linux-x64-beta.tar.gz PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta
   
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: PTZControl.exe ${{ env.VERSION }}
+          name: PTZControl2 v${{ env.VERSION }}
           prerelease: ${{ env.IS_PREVIEW_RELEASE == 'true' }}
           files: |
             ./PTZControl-win-x64.zip
@@ -202,4 +253,7 @@ jobs:
             ./PTZControl2-win-x64.zip
             ./PTZControl2-win-x86.zip
             ./PTZControlConsole-linux-x64-beta.tar.gz
+            ./PTZControlServer-win-x64.zip
+            ./PTZControlServer-win-x86.zip
+            ./PTZControlServer-linux-x64-beta.tar.gz
       
