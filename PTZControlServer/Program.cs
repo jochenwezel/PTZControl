@@ -24,6 +24,8 @@ if (serverOptions.ShowHelp)
 }
 
 var builder = WebApplication.CreateBuilder(args: []);
+builder.Host.UseWindowsService(options => options.ServiceName = "PTZControlServer");
+builder.Host.UseSystemd();
 builder.WebHost.UseUrls(serverOptions.ListenUrls.ToArray());
 builder.Services.AddSingleton(serverOptions);
 builder.Services.AddSingleton(CameraBackendFactory.Create());

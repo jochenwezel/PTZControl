@@ -229,9 +229,16 @@ jobs:
           mkdir -p PTZControlServer-${{ env.TAG_NAME }}-win-x64/companion
           mkdir -p PTZControlServer-${{ env.TAG_NAME }}-win-x86/companion
           mkdir -p PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta/companion
+          mkdir -p PTZControlServer-${{ env.TAG_NAME }}-win-x64/scripts
+          mkdir -p PTZControlServer-${{ env.TAG_NAME }}-win-x86/scripts
+          mkdir -p PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta/scripts
           cp docs/assets/PTZControlServer-Companion-Page.companionconfig PTZControlServer-${{ env.TAG_NAME }}-win-x64/companion/
           cp docs/assets/PTZControlServer-Companion-Page.companionconfig PTZControlServer-${{ env.TAG_NAME }}-win-x86/companion/
           cp docs/assets/PTZControlServer-Companion-Page.companionconfig PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta/companion/
+          cp scripts/server/*.ps1 PTZControlServer-${{ env.TAG_NAME }}-win-x64/scripts/
+          cp scripts/server/*.ps1 PTZControlServer-${{ env.TAG_NAME }}-win-x86/scripts/
+          cp scripts/server/*.sh PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta/scripts/
+          chmod +x PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta/scripts/*.sh
   
       - name: Package Files
         run: |

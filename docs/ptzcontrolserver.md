@@ -27,6 +27,84 @@ Open `http://127.0.0.1:7070/swagger` for the interactive Swagger UI. The
 OpenAPI document is available at
 `http://127.0.0.1:7070/swagger/v1/swagger.json`.
 
+## Automatic startup
+
+Every server package contains installation helpers in `scripts`.
+
+### Windows user startup (recommended)
+
+USB camera and DirectShow access is normally most reliable in the interactive
+user session. Install an auto-start task for the current user without requiring
+administrator rights:
+
+```powershell
+.\scripts\install-windows-startup.ps1
+```
+
+The task starts the server immediately and again whenever that user signs in.
+Remove it with:
+
+```powershell
+.\scripts\remove-windows-startup.ps1
+```
+
+Server options can be stored in the task during installation:
+
+```powershell
+.\scripts\install-windows-startup.ps1 `
+  -Listen 'http://0.0.0.0:7070' `
+  -AllowIp '192.168.1.0/24' `
+  -Token 'replace-with-a-long-random-secret'
+```
+
+Keep the extracted server directory at a permanent local path after installing
+the task. Mapped drives such as `Q:` may not be available at sign-in time.
+
+### Windows service (optional)
+
+The server also supports the Windows Service Control Manager. From an elevated
+PowerShell window run:
+
+```powershell
+.\scripts\install-windows-service.ps1
+```
+
+Remove it with `remove-windows-service.ps1`. The service starts automatically
+with Windows and restarts after failures. It runs as `LocalSystem` in session 0;
+some USB camera drivers, privacy settings, or Logitech extensions may only work
+in an interactive user session. Prefer the scheduled-task option if camera
+discovery or control fails in service mode.
+
+### Linux systemd service
+
+The Linux beta package includes a systemd installer:
+
+```bash
+sudo ./scripts/install-linux-systemd.sh
+```
+
+It installs to `/opt/ptzcontrolserver`, enables the service, and starts it.
+Override the service user, install directory, or arguments when needed:
+
+```bash
+sudo PTZCONTROL_USER=companion \
+  PTZCONTROL_INSTALL_DIR=/opt/ptzcontrolserver \
+  PTZCONTROL_SERVER_ARGS='--listen http://0.0.0.0:7070 --allow-ip 192.168.1.0/24' \
+  ./scripts/install-linux-systemd.sh
+```
+
+Use `journalctl -u ptzcontrolserver` for logs and
+`sudo ./scripts/remove-linux-systemd.sh` to remove the service definition.
+
+### Start with Bitfocus Companion
+
+As an alternative, create a Companion startup trigger that runs
+`PTZControlServer.exe` using Companion's local system-command action. This ties
+server availability to Companion and is useful for portable setups, but it
+does not provide the restart and lifecycle management of Task Scheduler or
+systemd. Do not combine multiple startup methods, or the second process will
+fail because port 7070 is already in use.
+
 To accept requests from a LAN, bind all interfaces and limit access with an IP
 allowlist and token:
 
