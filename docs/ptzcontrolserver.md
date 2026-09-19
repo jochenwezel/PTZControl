@@ -119,6 +119,31 @@ GET /action/restore-default?slot=2&target=all
 
 ## Bitfocus Companion
 
+A prepared Companion 5 page is included in every server package and is also
+available as a standalone release asset:
+
+```text
+PTZControlServer-Companion-Page.companionconfig
+```
+
+The icon-focused 5x3 page provides presets 1-5, zoom, pan, tilt, home,
+driver-default restore, and navigation back to page 1. Zoom, pan, and tilt use
+Companion's `Logic: While loop`, so they repeat for as long as the button is
+held. Presets, home, and driver-default restore remain single actions.
+
+The template assumes:
+
+```text
+Server: http://127.0.0.1:7070
+Camera slot: 1
+```
+
+After importing, edit the Generic HTTP URLs if Companion and PTZControlServer
+run on different computers or the camera uses another slot. When token
+authentication is enabled, add the `X-PTZControl-Token` header to every HTTP
+action. The page imports a Generic HTTP Requests connection dependency, which
+Companion may ask you to map to an existing connection.
+
 In Generic HTTP Requests, configure the PTZControlServer computer as the host
 and create a request action with one of the REST-style URLs above. Select
 `POST` or `PUT`. If token authentication is enabled, add the

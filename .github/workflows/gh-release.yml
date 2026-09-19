@@ -226,6 +226,12 @@ jobs:
           cp docs/ptzcontrolserver.md PTZControlServer-${{ env.TAG_NAME }}-win-x64/README.md
           cp docs/ptzcontrolserver.md PTZControlServer-${{ env.TAG_NAME }}-win-x86/README.md
           cp docs/ptzcontrolserver.md PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta/README.md
+          mkdir -p PTZControlServer-${{ env.TAG_NAME }}-win-x64/companion
+          mkdir -p PTZControlServer-${{ env.TAG_NAME }}-win-x86/companion
+          mkdir -p PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta/companion
+          cp docs/assets/PTZControlServer-Companion-Page.companionconfig PTZControlServer-${{ env.TAG_NAME }}-win-x64/companion/
+          cp docs/assets/PTZControlServer-Companion-Page.companionconfig PTZControlServer-${{ env.TAG_NAME }}-win-x86/companion/
+          cp docs/assets/PTZControlServer-Companion-Page.companionconfig PTZControlServer-${{ env.TAG_NAME }}-linux-x64-beta/companion/
   
       - name: Package Files
         run: |
@@ -256,4 +262,5 @@ jobs:
             ./PTZControlServer-win-x64.zip
             ./PTZControlServer-win-x86.zip
             ./PTZControlServer-linux-x64-beta.tar.gz
+            ./docs/assets/PTZControlServer-Companion-Page.companionconfig
       
