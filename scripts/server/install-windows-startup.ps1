@@ -4,6 +4,9 @@ param(
     [string[]] $AllowIp,
     [string] $Token,
     [switch] $NoSwagger,
+    [ValidateSet('information', 'debug')]
+    [string] $LogLevel,
+    [string] $LogDirectory,
     [string] $TaskName = 'PTZControlServer'
 )
 
@@ -14,6 +17,8 @@ foreach ($url in $Listen) { $arguments.Add("--listen `"$url`"") }
 foreach ($rule in $AllowIp) { $arguments.Add("--allow-ip `"$rule`"") }
 if ($Token) { $arguments.Add("--token `"$($Token.Replace('"', '\"'))`"") }
 if ($NoSwagger) { $arguments.Add('--no-swagger') }
+if ($LogLevel) { $arguments.Add("--log-level `"$LogLevel`"") }
+if ($LogDirectory) { $arguments.Add("--log-directory `"$LogDirectory`"") }
 
 $action = New-ScheduledTaskAction -Execute $server -Argument ($arguments -join ' ') -WorkingDirectory (Split-Path $server)
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME

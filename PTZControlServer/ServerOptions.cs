@@ -1,4 +1,6 @@
 using System.Net;
+using Microsoft.Extensions.Hosting.WindowsServices;
+using Microsoft.Extensions.Logging;
 
 namespace PTZControlServer;
 
@@ -11,6 +13,8 @@ public sealed class ServerOptions
     public List<IpNetworkRule> AllowedIps { get; } = [];
     public string? Token { get; private set; }
     public bool SwaggerEnabled { get; private set; } = true;
+    public LogLevel FileLogLevel { get; private set; } = LogLevel.None;
+    public string LogDirectory { get; private set; } = string.Empty;
     public bool ShowHelp { get; private set; }
 
     public static ServerOptions Parse(string[] args)
@@ -32,6 +36,12 @@ public sealed class ServerOptions
                     break;
                 case "--no-swagger":
                     options.SwaggerEnabled = false;
+                    break;
+                case "--log-level":
+                    options.FileLogLevel = ParseLogLevel(RequireValue(args, ref index, argument));
+                    break;
+                case "--log-directory":
+                    options.LogDirectory = Path.GetFullPath(RequireValue(args, ref index, argument));
                     break;
                 case "--help":
                 case "-h":
@@ -55,6 +65,9 @@ public sealed class ServerOptions
                 throw new ArgumentException($"Invalid HTTP listen URL '{url}'. Example: http://127.0.0.1:{DefaultPort}");
         }
 
+        if (string.IsNullOrEmpty(options.LogDirectory))
+            options.LogDirectory = GetDefaultLogDirectory();
+
         return options;
     }
 
@@ -76,11 +89,39 @@ public sealed class ServerOptions
                              can reach a configured listen address are allowed.
           --token SECRET     Require X-PTZControl-Token on API and action requests.
           --no-swagger       Disable Swagger JSON and Swagger UI.
+          --log-level LEVEL  File logging: information, debug, or off.
+                             Default: off
+          --log-directory PATH
+                             Override the platform-specific log directory.
           -h, --help, -?     Display this help.
 
         Swagger UI: /swagger
         OpenAPI JSON: /swagger/v1/swagger.json
         """;
+
+    private static LogLevel ParseLogLevel(string value) => value.ToLowerInvariant() switch
+    {
+        "information" or "info" => LogLevel.Information,
+        "debug" => LogLevel.Debug,
+        "off" or "none" => LogLevel.None,
+        _ => throw new ArgumentException("Log level must be 'information', 'debug', or 'off'.")
+    };
+
+    private static string GetDefaultLogDirectory()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var root = WindowsServiceHelpers.IsWindowsService()
+                ? Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)
+                : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return Path.Combine(root, "PTZControl", "Logs");
+        }
+
+        var stateHome = Environment.GetEnvironmentVariable("XDG_STATE_HOME");
+        if (string.IsNullOrWhiteSpace(stateHome))
+            stateHome = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "state");
+        return Path.Combine(stateHome, "PTZControl", "logs");
+    }
 
     private static string RequireValue(string[] args, ref int index, string option)
     {

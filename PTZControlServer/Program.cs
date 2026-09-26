@@ -27,6 +27,8 @@ var builder = WebApplication.CreateBuilder(args: []);
 builder.Host.UseWindowsService(options => options.ServiceName = "PTZControlServer");
 builder.Host.UseSystemd();
 builder.WebHost.UseUrls(serverOptions.ListenUrls.ToArray());
+if (serverOptions.FileLogLevel != LogLevel.None)
+    builder.Logging.AddProvider(new DailyFileLoggerProvider(serverOptions.LogDirectory, serverOptions.FileLogLevel));
 builder.Services.AddSingleton(serverOptions);
 builder.Services.AddSingleton(CameraBackendFactory.Create());
 builder.Services.AddSingleton<CameraApiService>();
@@ -53,6 +55,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+var requestLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("PTZControlServer.Requests");
 
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {
@@ -66,6 +69,25 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
     };
     await Results.Problem(exception?.Message ?? title, statusCode: status, title: title).ExecuteAsync(context);
 }));
+
+app.Use(async (context, next) =>
+{
+    var started = System.Diagnostics.Stopwatch.GetTimestamp();
+    try
+    {
+        await next();
+        requestLogger.LogInformation("{Method} {Path}{Query} -> {StatusCode} in {ElapsedMs:F1} ms from {RemoteIp}",
+            context.Request.Method, context.Request.Path, context.Request.QueryString, context.Response.StatusCode,
+            System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, context.Connection.RemoteIpAddress);
+    }
+    catch (Exception exception)
+    {
+        requestLogger.LogError(exception, "{Method} {Path}{Query} failed after {ElapsedMs:F1} ms from {RemoteIp}",
+            context.Request.Method, context.Request.Path, context.Request.QueryString,
+            System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, context.Connection.RemoteIpAddress);
+        throw;
+    }
+});
 
 if (serverOptions.SwaggerEnabled)
 {
@@ -128,6 +150,9 @@ foreach (var url in serverOptions.ListenUrls)
 Console.WriteLine(serverOptions.SwaggerEnabled ? "Swagger UI is available at /swagger" : "Swagger UI is disabled.");
 Console.WriteLine(serverOptions.AllowedIps.Count == 0 ? "IP allowlist: not configured" : $"IP allowlist: {string.Join(", ", serverOptions.AllowedIps.Select(rule => rule.Source))}");
 Console.WriteLine(string.IsNullOrEmpty(serverOptions.Token) ? "Token authentication: disabled" : $"Token authentication: enabled ({ServerOptions.TokenHeaderName})");
+Console.WriteLine(serverOptions.FileLogLevel == LogLevel.None
+    ? "File logging: disabled"
+    : $"File logging: {serverOptions.FileLogLevel} ({serverOptions.LogDirectory})");
 
 await app.RunAsync();
 return 0;

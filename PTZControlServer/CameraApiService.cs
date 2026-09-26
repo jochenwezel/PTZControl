@@ -1,14 +1,16 @@
 using Microsoft.Win32;
+using Microsoft.Extensions.Logging.Abstractions;
 using PTZControl.Core;
 using PTZControl.Uvc;
 using System.Text.Json;
 
 namespace PTZControlServer;
 
-public sealed class CameraApiService(ICameraBackend backend)
+public sealed class CameraApiService(ICameraBackend backend, ILogger<CameraApiService>? logger = null)
 {
     private const int MaximumMetadataSlot = 3;
     private readonly SemaphoreSlim _cameraLock = new(1, 1);
+    private readonly ILogger<CameraApiService> _logger = logger ?? NullLogger<CameraApiService>.Instance;
 
     public IReadOnlyList<CameraDeviceDto> GetDevices()
         => ReadLocked(() =>
@@ -51,6 +53,11 @@ public sealed class CameraApiService(ICameraBackend backend)
             var camera = ResolveCamera(slot);
             await action(backend, camera.MonikerString);
         }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Camera operation failed for slot {Slot}", slot);
+            throw;
+        }
         finally
         {
             _cameraLock.Release();
@@ -60,22 +67,25 @@ public sealed class CameraApiService(ICameraBackend backend)
     public Task SetZoomAsync(int slot, int value, ValueMode mode, bool relative) =>
         ExecuteAsync(slot, (cameraBackend, camera) =>
         {
+            _logger.LogDebug("Zoom request: slot={Slot}, mode={Mode}, relative={Relative}, value={Value}", slot, mode, relative, value);
             if (relative)
             {
                 var rawDelta = mode == ValueMode.Percent
                     ? PercentDelta(cameraBackend, camera, CameraProperty.Zoom, value)
                     : value;
-                SetRelative(cameraBackend, camera, CameraProperty.Zoom, rawDelta);
+                SetRelative(cameraBackend, camera, slot, CameraProperty.Zoom, rawDelta);
             }
             else
             {
-                cameraBackend.SetPanTiltZoom(camera, zoom: ToAbsolute(cameraBackend, camera, CameraProperty.Zoom, value, mode));
+                var target = ToAbsolute(cameraBackend, camera, CameraProperty.Zoom, value, mode);
+                SetAbsolute(cameraBackend, camera, slot, CameraProperty.Zoom, target);
             }
         });
 
     public Task MoveAsync(int slot, int? pan, int? tilt, ValueMode mode, bool relative) =>
         ExecuteAsync(slot, (cameraBackend, camera) =>
         {
+            _logger.LogDebug("Move request: slot={Slot}, mode={Mode}, relative={Relative}, pan={Pan}, tilt={Tilt}", slot, mode, relative, pan, tilt);
             if (pan is null && tilt is null)
                 throw new ApiInputException("Specify pan, tilt, or both.");
 
@@ -84,15 +94,20 @@ public sealed class CameraApiService(ICameraBackend backend)
                 int? rawPan = pan is null ? null : mode == ValueMode.Percent ? PercentDelta(cameraBackend, camera, CameraProperty.Pan, pan.Value) : pan;
                 int? rawTilt = tilt is null ? null : mode == ValueMode.Percent ? PercentDelta(cameraBackend, camera, CameraProperty.Tilt, tilt.Value) : tilt;
                 if (rawPan.HasValue)
-                    SetRelative(cameraBackend, camera, CameraProperty.Pan, rawPan.Value);
+                    SetRelative(cameraBackend, camera, slot, CameraProperty.Pan, rawPan.Value);
                 if (rawTilt.HasValue)
-                    SetRelative(cameraBackend, camera, CameraProperty.Tilt, rawTilt.Value);
+                    SetRelative(cameraBackend, camera, slot, CameraProperty.Tilt, rawTilt.Value);
             }
             else
             {
                 int? rawPan = pan is null ? null : ToAbsolute(cameraBackend, camera, CameraProperty.Pan, pan.Value, mode);
                 int? rawTilt = tilt is null ? null : ToAbsolute(cameraBackend, camera, CameraProperty.Tilt, tilt.Value, mode);
+                _logger.LogDebug("Absolute move write: slot={Slot}, panTarget={PanTarget}, tiltTarget={TiltTarget}", slot, rawPan, rawTilt);
                 cameraBackend.SetPanTiltZoom(camera, rawPan, rawTilt);
+                if (rawPan.HasValue)
+                    LogReadback(cameraBackend, camera, slot, CameraProperty.Pan, rawPan.Value);
+                if (rawTilt.HasValue)
+                    LogReadback(cameraBackend, camera, slot, CameraProperty.Tilt, rawTilt.Value);
             }
         });
 
@@ -138,6 +153,7 @@ public sealed class CameraApiService(ICameraBackend backend)
         var camera = cameras[slot - 1];
         if (string.IsNullOrWhiteSpace(camera.MonikerString))
             throw new CameraNotFoundException($"Camera slot {slot} does not provide a device path.");
+        _logger.LogDebug("Resolved camera: slot={Slot}, name={Name}, devicePath={DevicePath}", slot, camera.Name, camera.MonikerString);
         return camera;
     }
 
@@ -179,17 +195,48 @@ public sealed class CameraApiService(ICameraBackend backend)
         return delta;
     }
 
-    private static void SetRelative(ICameraBackend cameraBackend, string camera, CameraProperty property, int delta)
+    private void SetRelative(ICameraBackend cameraBackend, string camera, int slot, CameraProperty property, int delta)
     {
         var range = cameraBackend.GetRange(camera, property);
         var current = cameraBackend.GetValue(camera, property);
         var target = Math.Clamp(current + delta, range.min, range.max);
+        _logger.LogDebug("Relative camera write: slot={Slot}, property={Property}, range={Min}..{Max}, step={Step}, current={Current}, delta={Delta}, target={Target}",
+            slot, property, range.min, range.max, range.step, current, delta, target);
+        SetProperty(cameraBackend, camera, property, target);
+        LogReadback(cameraBackend, camera, slot, property, target);
+    }
+
+    private void SetAbsolute(ICameraBackend cameraBackend, string camera, int slot, CameraProperty property, int target)
+    {
+        var range = cameraBackend.GetRange(camera, property);
+        var current = cameraBackend.GetValue(camera, property);
+        _logger.LogDebug("Absolute camera write: slot={Slot}, property={Property}, range={Min}..{Max}, step={Step}, current={Current}, target={Target}",
+            slot, property, range.min, range.max, range.step, current, target);
+        SetProperty(cameraBackend, camera, property, target);
+        LogReadback(cameraBackend, camera, slot, property, target);
+    }
+
+    private static void SetProperty(ICameraBackend cameraBackend, string camera, CameraProperty property, int target)
+    {
         if (property == CameraProperty.Zoom)
             cameraBackend.SetPanTiltZoom(camera, zoom: target);
         else if (property == CameraProperty.Pan)
             cameraBackend.SetPanTiltZoom(camera, pan: target);
         else
             cameraBackend.SetPanTiltZoom(camera, tilt: target);
+    }
+
+    private void LogReadback(ICameraBackend cameraBackend, string camera, int slot, CameraProperty property, int requested)
+    {
+        try
+        {
+            var actual = cameraBackend.GetValue(camera, property);
+            _logger.LogDebug("Camera readback: slot={Slot}, property={Property}, requested={Requested}, actual={Actual}", slot, property, requested, actual);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogDebug(exception, "Camera readback failed: slot={Slot}, property={Property}, requested={Requested}", slot, property, requested);
+        }
     }
 
     private CameraRangeDto TryReadRange(string camera, CameraProperty property)

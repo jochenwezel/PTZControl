@@ -27,6 +27,32 @@ Open `http://127.0.0.1:7070/swagger` for the interactive Swagger UI. The
 OpenAPI document is available at
 `http://127.0.0.1:7070/swagger/v1/swagger.json`.
 
+## Diagnostic file logging
+
+File logging is disabled by default. No log directory or file is created unless
+logging is explicitly enabled:
+
+```powershell
+PTZControlServer.exe --log-level debug
+```
+
+`information` records requests, status codes, failures, and startup details.
+`debug` additionally records camera resolution, property ranges, current values,
+requested deltas, calculated targets, and values read back after writes. Request
+headers and the authentication token are never written to the log.
+
+Logs rotate daily, use names such as
+`PTZControlServer-2026-09-26.log`, and are retained for 14 days. Override the
+platform-specific default directory when needed:
+
+```powershell
+PTZControlServer.exe --log-level debug --log-directory C:\PTZControlLogs
+```
+
+Interactive Windows runs default to `%LOCALAPPDATA%\PTZControl\Logs`; Windows
+services use `%PROGRAMDATA%\PTZControl\Logs`. Linux defaults to
+`$XDG_STATE_HOME/PTZControl/logs` or `~/.local/state/PTZControl/logs`.
+
 ## Automatic startup
 
 Every server package contains installation helpers in `scripts`.
@@ -57,6 +83,9 @@ Server options can be stored in the task during installation:
   -Token 'replace-with-a-long-random-secret'
 ```
 
+For a temporary diagnostic installation, add `-LogLevel debug`. Logging remains
+off when `-LogLevel` is omitted.
+
 Keep the extracted server directory at a permanent local path after installing
 the task. Mapped drives such as `Q:` may not be available at sign-in time.
 
@@ -67,6 +96,12 @@ PowerShell window run:
 
 ```powershell
 .\scripts\install-windows-service.ps1
+```
+
+Enable detailed diagnostics during installation with:
+
+```powershell
+.\scripts\install-windows-service.ps1 -LogLevel debug
 ```
 
 Remove it with `remove-windows-service.ps1`. The service starts automatically
@@ -245,6 +280,8 @@ allowlist, token, and camera behavior before configuring all buttons.
 --allow-ip RULE    Allow an exact IP, IPv4 wildcard, or CIDR network; repeatable.
 --token SECRET     Require the X-PTZControl-Token header.
 --no-swagger       Disable Swagger UI and OpenAPI JSON.
+--log-level LEVEL  Enable information/debug file logging, or use off.
+--log-directory    Override the directory used for daily log files.
 -h, --help, -?     Display server help.
 ```
 

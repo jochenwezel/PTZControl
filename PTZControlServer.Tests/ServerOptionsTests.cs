@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.Logging;
 using PTZControlServer;
 using Xunit;
 
@@ -12,6 +13,25 @@ public sealed class ServerOptionsTests
         var options = ServerOptions.Parse([]);
         Assert.Equal(["http://127.0.0.1:7070", "http://[::1]:7070"], options.ListenUrls);
         Assert.True(options.SwaggerEnabled);
+        Assert.Equal(LogLevel.None, options.FileLogLevel);
+    }
+
+    [Theory]
+    [InlineData("information", LogLevel.Information)]
+    [InlineData("debug", LogLevel.Debug)]
+    [InlineData("off", LogLevel.None)]
+    public void Parse_AcceptsFileLogLevels(string value, LogLevel expected)
+    {
+        var options = ServerOptions.Parse(["--log-level", value]);
+        Assert.Equal(expected, options.FileLogLevel);
+    }
+
+    [Fact]
+    public void Parse_AcceptsExplicitLogDirectory()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "ptzcontrol-test-logs");
+        var options = ServerOptions.Parse(["--log-directory", path]);
+        Assert.Equal(Path.GetFullPath(path), options.LogDirectory);
     }
 
     [Fact]
@@ -39,6 +59,11 @@ public sealed class ServerOptionsTests
     [InlineData("--unknown")]
     [InlineData("--listen")]
     [InlineData("--allow-ip")]
+    [InlineData("--log-level")]
     public void Parse_RejectsInvalidArguments(string argument) =>
         Assert.Throws<ArgumentException>(() => ServerOptions.Parse([argument]));
+
+    [Fact]
+    public void Parse_RejectsUnknownLogLevel() =>
+        Assert.Throws<ArgumentException>(() => ServerOptions.Parse(["--log-level", "verbose"]));
 }
